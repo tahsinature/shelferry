@@ -11,7 +11,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let server = CommandServer()
     private let dragWatcher = ShelfDragWatcher()
     private var statusItem: NSStatusItem?
-    private var settings = ShelfConfig()
+    private lazy var preferences = PreferencesStore()
+    private lazy var hotkeys = GlobalHotkeys()
+    private lazy var preferencesWindow = PreferencesWindow(store: preferences, hotkeys: hotkeys)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         do {
@@ -24,9 +26,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSLog("Shelferry: %@", error.localizedDescription)
             NSApp.terminate(nil); return
         }
-        settings.shiftDragOpens = UserDefaults.standard.object(forKey: "shiftDragOpens") as? Bool ?? true
-        settings.removeAfterDragOut = UserDefaults.standard.bool(forKey: "removeAfterDragOut")
-        windows.apply(settings)
+        handler.onSettings = { [weak self] in self?.preferencesWindow.show() }
+        preferences.onChange = { [weak self] value in self?.applyPreferences(value) }
+        hotkeys.onAction = { [weak self] action in
+            guard let self else { return }
+            switch action {
+            case .toggle: windows.toggleAll()
+            case .newShelf: windows.newShelf()
+            case .manager: manager.toggle(library: library)
+            }
+        }
         let background = CommandLine.arguments.contains("--background")
         do { try windows.start(showWindows: !background) } catch {
             let alert = NSAlert()
@@ -37,8 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         dragWatcher.onShiftDrag = { [weak self] in self?.windows.showForDrag() }
         dragWatcher.onDragEnded = { [weak self] in self?.windows.dragEnded() }
-        if settings.shiftDragOpens { dragWatcher.start() }
-        buildMenu()
+        applyPreferences(preferences.value)
         if library.isEmpty && !background { windows.newShelf(focus: false) }
     }
 
@@ -55,9 +63,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         _ = item("Show / Hide All Shelves", #selector(toggle), key: "s")
         _ = item("Shelf Manager…", #selector(showManager))
         menu.addItem(.separator())
-        item("Show When Shift-Dragging", #selector(toggleDrag)).state = settings.shiftDragOpens ? .on : .off
-        item("Remove Items After Dragging Out", #selector(toggleCleanup)).state = settings.removeAfterDragOut ? .on : .off
+        item("Show When Shift-Dragging", #selector(toggleDrag)).state = preferences.value.shiftDragOpens ? .on : .off
+        item("Remove Items After Dragging Out", #selector(toggleCleanup)).state = preferences.value.removeAfterDragOut ? .on : .off
         menu.addItem(.separator())
+        _ = item("Settings…", #selector(showPreferences), key: ",")
         _ = item("About Shelferry", #selector(about))
         _ = item("Quit Shelferry", #selector(quit), key: "q")
         statusItem?.menu = menu
@@ -65,18 +74,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func newShelf() { windows.newShelf() }
     @objc private func toggle() { windows.toggleAll() }
     @objc private func showManager() { manager.toggle(library: library) }
-    @objc private func toggleDrag() {
-        settings.shiftDragOpens.toggle()
-        UserDefaults.standard.set(settings.shiftDragOpens, forKey: "shiftDragOpens")
-        settings.shiftDragOpens ? dragWatcher.start() : dragWatcher.stop()
+    private func applyPreferences(_ value: Preferences) {
+        var config = ShelfConfig()
+        config.shiftDragOpens = value.shiftDragOpens
+        config.removeAfterDragOut = value.removeAfterDragOut
+        windows.apply(config)
+        value.shiftDragOpens ? dragWatcher.start() : dragWatcher.stop()
+        hotkeys.apply(value.shortcuts)
         buildMenu()
     }
-    @objc private func toggleCleanup() {
-        settings.removeAfterDragOut.toggle()
-        UserDefaults.standard.set(settings.removeAfterDragOut, forKey: "removeAfterDragOut")
-        windows.apply(settings); buildMenu()
-    }
-    @objc private func about() { NSApp.activate(); NSApp.orderFrontStandardAboutPanel(nil) }
+    @objc private func toggleDrag() { preferences.update { $0.shiftDragOpens.toggle() } }
+    @objc private func toggleCleanup() { preferences.update { $0.removeAfterDragOut.toggle() } }
+    @objc private func showPreferences() { preferencesWindow.show() }
+    @objc private func about() { preferencesWindow.show(.about) }
     @objc private func quit() { NSApp.terminate(nil) }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         windows.showAll(); return false

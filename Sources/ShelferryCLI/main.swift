@@ -11,6 +11,7 @@ Shelferry — a native floating file shelf
   shelferry add [--shelf <id or name | new>] [--copy | --original] -- <paths...>
   shelferry show|hide|toggle [--shelf <id or name>]
   shelferry manager
+  shelferry settings
   shelferry rename --shelf <id or name> --name <name>
   shelferry clear|delete --shelf <id or name> --yes
 

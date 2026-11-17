@@ -15,6 +15,7 @@ let package = Package(
         .executableTarget(name: "ShelferryApp", dependencies: ["ShelferryCore", "ShelferryDesignSystem", "ShelferryProtocol", "ShelfFeature", .product(name: "ComposableArchitecture", package: "swift-composable-architecture")]),
         .executableTarget(name: "ShelferryCLI", dependencies: ["ShelferryProtocol"]),
         .testTarget(name: "ShelfFeatureTests", dependencies: ["ShelfFeature"]),
+        .testTarget(name: "ShelferryPreferencesTests", dependencies: ["ShelferryApp"]),
         .testTarget(name: "ShelferryProtocolTests", dependencies: ["ShelferryProtocol"])
     ]
 )

@@ -63,3 +63,23 @@ open build/Shelferry.app
 ```
 
 `ARCHS="arm64 x86_64" make app` creates a universal app. `CONFIGURATION=debug make app` creates a development build. Data lives in `~/Library/Application Support/Shelferry`; Tooki storage is never read or modified. Test overrides: `SHELFERRY_DATA_DIR`, `SHELFERRY_SOCKET_DIR`, and CLI `SHELFERRY_APP`.
+
+## Preferences and hotkeys
+
+Open Settings from the Shelferry menu bar. General contains drag preferences, Hotkeys records global shortcuts, and About links to help and source code. Hotkeys start unassigned and require no Accessibility permission.
+
+Settings save to `~/.config/shelferry/config.json`. Shelferry reloads external edits within a second, including atomic editor saves and edits to symlink targets. Invalid files keep the last valid settings active and show an error in Settings. UI writes preserve symlinks. Shelf data and copies remain in Application Support. `SHELFERRY_CONFIG_DIR` overrides the configuration directory.
+
+```json
+{
+  "shiftDragOpens": true,
+  "removeAfterDragOut": false,
+  "shortcuts": {
+    "toggle": "ctrl+opt+s",
+    "newShelf": "ctrl+opt+n",
+    "manager": "ctrl+opt+m"
+  }
+}
+```
+
+These are example hotkeys, not defaults. Remove an entry to unassign it. Conflicts with other apps are reported in Settings. See [the integration guide](INTEGRATIONS.md) for launcher APIs and examples.

@@ -5,7 +5,7 @@ public struct Arguments {
     public let json: Bool
     public let nul: Bool
     public init(_ args: [String]) throws {
-        guard let command = args.first, ["list", "items", "new", "add", "show", "hide", "toggle", "rename", "clear", "delete", "manager", "ping"].contains(command) else {
+        guard let command = args.first, ["list", "items", "new", "add", "show", "hide", "toggle", "rename", "clear", "delete", "manager", "settings", "ping"].contains(command) else {
             throw ServiceError("Unknown command. Run shelferry --help.")
         }
         var request = Request(command: command)

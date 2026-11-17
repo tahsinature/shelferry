@@ -3,6 +3,7 @@ import ShelferryProtocol
 
 @MainActor
 final class CommandHandler {
+    var onSettings: () -> Void = {}
     let windows: ShelfWindows
     let manager: ShelfManagerController
     init(windows: ShelfWindows, manager: ShelfManagerController) {
@@ -51,6 +52,7 @@ final class CommandHandler {
                 else if request.command == "hide" { windows.hideAll() }
                 else { if library.isEmpty { windows.newShelf(focus: false) } else { windows.showAll() } }
             case "manager": manager.toggle(library: library)
+            case "settings": onSettings()
             case "rename":
                 let shelf = try find(request.shelf)
                 guard let name = request.name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ServiceError("A name is required.") }

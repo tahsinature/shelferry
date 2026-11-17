@@ -12,7 +12,7 @@ app = root / "build/Shelferry.app/Contents/MacOS/Shelferry"
 cli = app.parent.parent / "Helpers/shelferry"
 with tempfile.TemporaryDirectory(prefix="shelferry-test-", dir="/tmp") as temporary:
     directory = Path(temporary)
-    env = dict(os.environ, SHELFERRY_DATA_DIR=str(directory / "data"), SHELFERRY_SOCKET_DIR=str(directory / "ipc"))
+    env = dict(os.environ, SHELFERRY_CONFIG_DIR=str(directory / "config"), SHELFERRY_DATA_DIR=str(directory / "data"), SHELFERRY_SOCKET_DIR=str(directory / "ipc"))
     def start():
         process = subprocess.Popen([str(app), "--background"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         for _ in range(150):
