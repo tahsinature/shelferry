@@ -3,6 +3,7 @@ app:
 	./scripts/build.sh
 dev:
 	CONFIGURATION=debug BUILD_CHANNEL=dev ./scripts/build.sh
+	bash scripts/launch-dev.sh
 info:
 	@bash scripts/build-info.sh
 test:

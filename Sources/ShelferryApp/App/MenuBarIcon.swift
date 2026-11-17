@@ -8,9 +8,9 @@ enum MenuBarIcon {
         button.addSubview(badge)
         NSLayoutConstraint.activate([
             badge.centerXAnchor.constraint(equalTo: button.centerXAnchor),
-            badge.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -1),
-            badge.widthAnchor.constraint(equalToConstant: 22),
-            badge.heightAnchor.constraint(equalToConstant: 10)
+            badge.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -2),
+            badge.widthAnchor.constraint(equalToConstant: 14),
+            badge.heightAnchor.constraint(equalToConstant: 7)
         ])
     }
 
@@ -57,10 +57,10 @@ private final class DevelopmentBadgeView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         NSColor(calibratedRed: 1, green: 0.69, blue: 0.25, alpha: 1).setFill()
-        NSBezierPath(roundedRect: bounds, xRadius: 4, yRadius: 4).fill()
+        NSBezierPath(roundedRect: bounds, xRadius: 3, yRadius: 3).fill()
 
         let label = NSAttributedString(string: "DEV", attributes: [
-            .font: NSFont.systemFont(ofSize: 8, weight: .heavy),
+            .font: NSFont.systemFont(ofSize: 6, weight: .heavy),
             .foregroundColor: NSColor.black
         ])
         let size = label.size()
