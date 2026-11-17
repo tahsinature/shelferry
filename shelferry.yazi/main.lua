@@ -6,7 +6,7 @@ local function notify(text, level)
 end
 local selected_paths = ya.sync(function()
   local paths = {}
-  for _, url in pairs(cx.active.selected) do paths[#paths + 1] = tostring(url) end
+  for _, file in pairs(cx.active.selected) do paths[#paths + 1] = tostring(file.url) end
   if #paths == 0 and cx.active.current.hovered then paths[1] = tostring(cx.active.current.hovered.url) end
   return paths
 end)
