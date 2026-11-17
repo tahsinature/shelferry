@@ -32,6 +32,7 @@ final class PreferencesWindow: NSObject, NSToolbarDelegate {
             toolbar.allowsUserCustomization = false
             window.toolbar = toolbar
             self.window = window; hosting = host
+            window.setContentSize(NSSize(width: 490, height: 360))
             window.center()
         }
         select(pane)

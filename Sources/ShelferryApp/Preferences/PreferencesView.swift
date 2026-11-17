@@ -19,9 +19,8 @@ struct PreferencesView: View {
                     .font(.callout).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(28)
-        .frame(width: 490, alignment: .leading)
-        .frame(minHeight: 280, alignment: .top)
+        .padding(24)
+        .frame(width: 490, height: 360, alignment: .topLeading)
     }
 
     private var general: some View {
@@ -74,9 +73,9 @@ struct PreferencesView: View {
     }
 
     private var about: some View {
-        VStack(alignment: .leading, spacing: 22) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 16) {
-                Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 72, height: 72)
+                Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 64, height: 64)
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Shelferry").font(.title.bold())
                     Text("Version \(version)").foregroundStyle(.secondary)
