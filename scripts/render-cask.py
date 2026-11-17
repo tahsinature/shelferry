@@ -25,7 +25,7 @@ pathlib.Path(destination).write_text('''cask "shelferry" do
   uninstall quit: "us.tahsin.shelferry"
 
   caveats <<~EOS
-    Shelferry is currently ad-hoc signed, not Apple-notarized.
+    Shelferry is not Apple-notarized.
     If macOS blocks it, review and allow it in System Settings > Privacy & Security.
     Yazi plugin: ya pkg add tahsinature/shelferry:shelferry
   EOS

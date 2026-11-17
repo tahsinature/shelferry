@@ -32,11 +32,47 @@ jobs:
           path: .build
           key: swift-release-${{ runner.os }}-${{ hashFiles('Package.resolved', 'Package.swift') }}
       - run: swift test
+      - name: Require the update signing key
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          if [[ -z "$SPARKLE_PRIVATE_KEY" ]]; then
+            echo "::error::SPARKLE_PRIVATE_KEY is required to publish verifiable Sparkle updates. See docs/RELEASING.md."
+            exit 1
+          fi
+
+      # Keep the application signing identity stable across updates.
+      - name: Load the signing certificate
+        id: signing
+        env:
+          CERT_P12: ${{ secrets.SIGNING_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.SIGNING_CERT_PASSWORD }}
+        run: |
+          if [[ -z "$CERT_P12" ]]; then
+            echo "::warning::SIGNING_CERT_P12 is not set, so this release is signed ad hoc and permission continuity is not guaranteed."
+            echo "identity=-" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          umask 077
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          keychain_password="$(openssl rand -base64 24)"
+          echo "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$RUNNER_TEMP/signing.p12" -k "$keychain" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain" > /dev/null
+          # codesign only finds the self-signed identity when its keychain is in the search list.
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/signing.p12"
+          echo "identity=Shelferry Release Signing" >> "$GITHUB_OUTPUT"
+
       - name: Build universal app and CLI
         env:
           ARCHS: arm64 x86_64
           BUILD_NUMBER: ${{ github.run_number }}
           BUILD_CHANNEL: prod
+          SIGN_ID: ${{ steps.signing.outputs.identity }}
         run: ./scripts/build.sh
       - run: python3 scripts/integration-test.py
       - name: Package Homebrew cask
@@ -47,6 +83,20 @@ jobs:
             xcrun lipo build/Shelferry.app/Contents/MacOS/Shelferry -verify_arch "$arch"
             xcrun lipo build/Shelferry.app/Contents/Helpers/shelferry -verify_arch "$arch"
           done
+      - name: Generate signed update feed
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          mkdir -p build/appcast
+          cp build/Shelferry.zip build/appcast/
+          bash scripts/generate-appcast.sh build/appcast "https://github.com/tahsinature/shelferry/releases/download/v$VERSION/"
+      - name: Remove temporary signing keychain
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/signing.p12"
+          if [[ -f "$RUNNER_TEMP/signing.keychain-db" ]]; then
+            security delete-keychain "$RUNNER_TEMP/signing.keychain-db"
+          fi
       - name: Publish
         run: |
           cat > build/release-notes.md <<'NOTES'
@@ -56,7 +106,7 @@ jobs:
           Yazi: `ya pkg add tahsinature/shelferry:shelferry`
 
           Requires macOS 14+. Universal Apple Silicon and Intel build.
-          This release is ad-hoc signed and is not Apple-notarized. macOS may require approval in Privacy & Security.
+          This release is not Apple-notarized. macOS may require approval in Privacy & Security.
           Shelferry uses separate storage; it does not migrate or modify Tooki shelves.
           NOTES
-          gh release create "v$VERSION" build/Shelferry.zip build/Shelferry.zip.sha256 build/shelferry.rb --target "$GITHUB_SHA" --title "Shelferry $VERSION" --notes-file build/release-notes.md
+          gh release create "v$VERSION" build/Shelferry.zip build/Shelferry.zip.sha256 build/shelferry.rb build/appcast/appcast.xml --target "$GITHUB_SHA" --title "Shelferry $VERSION" --notes-file build/release-notes.md
