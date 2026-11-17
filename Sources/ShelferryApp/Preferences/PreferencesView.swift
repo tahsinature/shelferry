@@ -7,6 +7,7 @@ struct PreferencesView: View {
     let store: PreferencesStore
     let hotkeys: GlobalHotkeys
     let updater: Updater
+    private let buildInfo = BuildInfo()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -82,6 +83,8 @@ struct PreferencesView: View {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Shelferry").font(.title.bold())
                     Text("Version \(version)").foregroundStyle(.secondary)
+                    Text("\(buildInfo.channel) · \(buildInfo.exactDate)")
+                        .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 }
             }
             Text("A native floating shelf for carrying files between apps.")

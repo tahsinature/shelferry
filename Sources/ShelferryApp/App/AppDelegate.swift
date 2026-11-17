@@ -3,7 +3,7 @@ import ShelferryCore
 import ShelferryProtocol
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let library = ShelfLibrary()
     lazy var windows = ShelfWindows(library: library)
     lazy var handler = CommandHandler(windows: windows)
@@ -12,6 +12,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let server = CommandServer()
     private let dragWatcher = ShelfDragWatcher()
     private var statusItem: NSStatusItem?
+    private let buildInfo = BuildInfo()
+    private weak var aboutMenuItem: NSMenuItem?
     private lazy var preferences = PreferencesStore()
     private lazy var hotkeys = GlobalHotkeys()
     private lazy var preferencesWindow = PreferencesWindow(store: preferences, hotkeys: hotkeys, updater: updater)
@@ -61,7 +63,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func buildMenu() {
-        let isDevelopment = Bundle.main.object(forInfoDictionaryKey: "ShelferryBuildChannel") as? String != "prod"
+        let isDevelopment = buildInfo.channel == "Dev"
         if statusItem == nil {
             statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
             if let button = statusItem?.button {
@@ -69,12 +71,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if isDevelopment { MenuBarIcon.addDevelopmentBadge(to: button) }
             }
         }
-        let buildLabel = isDevelopment ? "Dev" : "Prod"
-        let menuTitle = "Shelferry · \(buildLabel)"
-        statusItem?.button?.toolTip = menuTitle
+        statusItem?.button?.toolTip = "Shelferry · \(buildInfo.channel)"
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: menuTitle, action: nil, keyEquivalent: ""))
-        menu.addItem(.separator())
+        menu.delegate = self
         func item(_ title: String, _ selector: Selector, key: String = "") -> NSMenuItem {
             let item = NSMenuItem(title: title, action: selector, keyEquivalent: key)
             item.target = self; menu.addItem(item); return item
@@ -87,9 +86,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         _ = item("Settings…", #selector(showPreferences), key: ",")
         if updater.isEnabled { _ = item("Check for Updates…", #selector(checkForUpdates)) }
-        _ = item("About Shelferry", #selector(about))
+        aboutMenuItem = item(buildInfo.menuTitle(), #selector(about))
+        aboutMenuItem?.toolTip = buildInfo.exactDate
         _ = item("Quit Shelferry", #selector(quit), key: "q")
         statusItem?.menu = menu
+    }
+
+    func menuWillOpen(_ menu: NSMenu) {
+        aboutMenuItem?.title = buildInfo.menuTitle()
     }
     @objc private func newShelf() { windows.newShelf() }
     @objc private func toggle() { windows.toggleAll() }

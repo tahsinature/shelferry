@@ -28,6 +28,7 @@ field "App" "$app"
 field "Version" "$(metadata CFBundleShortVersionString) (build $(metadata CFBundleVersion))"
 field "Channel" "$(metadata ShelferryBuildChannel)"
 field "Configuration" "$(metadata ShelferryBuildConfiguration)"
+field "Built (UTC)" "$(metadata ShelferryBuildDate)"
 field "Architecture" "$(lipo -archs "$executable")"
 field "Minimum macOS" "$(metadata LSMinimumSystemVersion)"
 sdk_versions=$(xcrun vtool -show-build "$executable" | awk '$1 == "sdk" && !seen[$2]++ { if (count++) printf ", "; printf "%s", $2 }')
