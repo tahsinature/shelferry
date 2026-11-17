@@ -26,3 +26,5 @@ jobs:
         run: |
           brew list lua >/dev/null 2>&1 || brew install lua
           luac -p shelferry.yazi/main.lua
+          test -f shelferry.yazi/README.md
+          test -f shelferry.yazi/LICENSE
