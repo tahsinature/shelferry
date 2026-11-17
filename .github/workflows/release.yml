@@ -42,8 +42,8 @@ jobs:
         run: |
           python3 scripts/render-cask.py "$VERSION" build/Shelferry.zip build/shelferry.rb
           ruby -c build/shelferry.rb
-          lipo -verify_arch arm64 x86_64 build/Shelferry.app/Contents/MacOS/Shelferry
-          lipo -verify_arch arm64 x86_64 build/Shelferry.app/Contents/Helpers/shelferry
+          lipo build/Shelferry.app/Contents/MacOS/Shelferry -verify_arch arm64 x86_64
+          lipo build/Shelferry.app/Contents/Helpers/shelferry -verify_arch arm64 x86_64
       - name: Publish
         run: |
           cat > build/release-notes.md <<'NOTES'
