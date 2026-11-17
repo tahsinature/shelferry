@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 configuration="${CONFIGURATION:-release}"
-version="${VERSION:-0.1.0}"
+version="${VERSION:-0.1.1}"
 architecture="${ARCHS:-$(uname -m)}"
 args=()
 for arch in $architecture; do args+=(--arch "$arch"); done

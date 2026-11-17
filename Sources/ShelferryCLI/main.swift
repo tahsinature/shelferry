@@ -20,11 +20,11 @@ clear empties a shelf; delete removes it. Both delete owned copies, never origin
 The app starts automatically. SHELFERRY_APP can point to a development .app bundle.
 """
 let raw = Array(CommandLine.arguments.dropFirst())
+let executable = Bundle.main.executableURL?.resolvingSymlinksInPath()
+let appBundle = executable.flatMap { Bundle(url: $0.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()) }
 if raw.isEmpty || raw == ["--help"] || raw == ["-h"] { print(help); exit(0) }
 if raw == ["--version"] {
-    let executable = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath()
-    let bundle = Bundle(url: executable.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent())
-    print(bundle?.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development")
+    print(appBundle?.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development")
     exit(0)
 }
 let wantsJSON = raw.prefix { $0 != "--" }.contains("--json")
@@ -38,6 +38,8 @@ do {
         launcher.executableURL = URL(fileURLWithPath: "/usr/bin/open")
         if let app = ProcessInfo.processInfo.environment["SHELFERRY_APP"] {
             launcher.arguments = ["-g", app, "--args", "--background"]
+        } else if let appBundle, appBundle.bundleIdentifier == "us.tahsin.shelferry" {
+            launcher.arguments = ["-g", appBundle.bundleURL.path, "--args", "--background"]
         } else { launcher.arguments = ["-g", "-b", "us.tahsin.shelferry", "--args", "--background"] }
         launcher.standardOutput = FileHandle.nullDevice
         try launcher.run(); launcher.waitUntilExit()

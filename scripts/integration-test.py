@@ -2,6 +2,7 @@
 """Real app + CLI integration using disposable data, sockets, and files."""
 import json
 import os
+import plistlib
 from pathlib import Path
 import subprocess
 import tempfile
@@ -13,6 +14,17 @@ cli = app.parent.parent / "Helpers/shelferry"
 with tempfile.TemporaryDirectory(prefix="shelferry-test-", dir="/tmp") as temporary:
     directory = Path(temporary)
     env = dict(os.environ, SHELFERRY_CONFIG_DIR=str(directory / "config"), SHELFERRY_DATA_DIR=str(directory / "data"), SHELFERRY_SOCKET_DIR=str(directory / "ipc"))
+    # Homebrew exposes the bundled helper through a symlink on PATH.
+    bin_directory = directory / "bin"
+    bin_directory.mkdir()
+    (bin_directory / "shelferry").symlink_to(cli)
+    with (app.parent.parent / "Info.plist").open("rb") as info:
+        version = plistlib.load(info)["CFBundleShortVersionString"]
+    for executable in (str(cli), "shelferry"):
+        result = subprocess.run([executable, "--version"], cwd=directory,
+                                env=dict(env, PATH=f"{bin_directory}:{env['PATH']}"),
+                                capture_output=True, text=True, check=True)
+        assert result.stdout.strip() == version, result.stdout
     def start():
         process = subprocess.Popen([str(app), "--background"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         for _ in range(150):
