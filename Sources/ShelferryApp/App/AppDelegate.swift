@@ -6,8 +6,7 @@ import ShelferryProtocol
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let library = ShelfLibrary()
     lazy var windows = ShelfWindows(library: library)
-    lazy var manager = ShelfManagerController(windows: windows)
-    lazy var handler = CommandHandler(windows: windows, manager: manager)
+    lazy var handler = CommandHandler(windows: windows)
     private let server = CommandServer()
     private let dragWatcher = ShelfDragWatcher()
     private var statusItem: NSStatusItem?
@@ -33,7 +32,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             switch action {
             case .toggle: windows.toggleAll()
             case .newShelf: windows.newShelf()
-            case .manager: manager.toggle(library: library)
             }
         }
         let background = CommandLine.arguments.contains("--background")
@@ -52,16 +50,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func buildMenu() {
         if statusItem == nil { statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength) }
-        statusItem?.button?.image = NSImage(systemSymbolName: "tray.full", accessibilityDescription: "Shelferry")
-        statusItem?.button?.toolTip = "Shelferry"
+        let buildLabel = Bundle.main.object(forInfoDictionaryKey: "ShelferryBuildChannel") as? String == "prod" ? "Prod" : "Dev"
+        let menuTitle = "Shelferry · \(buildLabel)"
+        statusItem?.button?.image = MenuBarIcon.paperStack()
+        statusItem?.button?.toolTip = menuTitle
         let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: menuTitle, action: nil, keyEquivalent: ""))
+        menu.addItem(.separator())
         func item(_ title: String, _ selector: Selector, key: String = "") -> NSMenuItem {
             let item = NSMenuItem(title: title, action: selector, keyEquivalent: key)
             item.target = self; menu.addItem(item); return item
         }
         _ = item("New Shelf", #selector(newShelf), key: "n")
         _ = item("Show / Hide All Shelves", #selector(toggle), key: "s")
-        _ = item("Shelf Manager…", #selector(showManager))
         menu.addItem(.separator())
         item("Show When Shift-Dragging", #selector(toggleDrag)).state = preferences.value.shiftDragOpens ? .on : .off
         item("Remove Items After Dragging Out", #selector(toggleCleanup)).state = preferences.value.removeAfterDragOut ? .on : .off
@@ -73,7 +74,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     @objc private func newShelf() { windows.newShelf() }
     @objc private func toggle() { windows.toggleAll() }
-    @objc private func showManager() { manager.toggle(library: library) }
     private func applyPreferences(_ value: Preferences) {
         var config = ShelfConfig()
         config.shiftDragOpens = value.shiftDragOpens

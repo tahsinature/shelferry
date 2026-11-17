@@ -119,26 +119,6 @@ final class ShelfWindows {
         }
     }
 
-    /// Adds what `pasteboard` holds without showing or hiding the shelf, so a hidden shelf stays
-    /// hidden. A new shelf starts hidden too. Beeps when there was nothing usable.
-    func add(from pasteboard: NSPasteboard, mode: ShelfAddMode, to destination: ShelfDestination) {
-        guard isEnabled else { return NSSound.beep() }
-        let shelf: Shelf
-        switch destination {
-        case .existing(let id):
-            guard let existing = library.shelves.first(where: { $0.id == id }) else { return NSSound.beep() }
-            shelf = existing
-        case .new:
-            shelf = library.newShelf()
-        }
-        // Wires up closing and settings like any other shelf.
-        _ = controller(for: shelf)
-        guard shelf.add(from: pasteboard, mode: mode) else {
-            if shelf.isEmpty { close(shelf) }
-            return NSSound.beep()
-        }
-    }
-
     /// Shows an empty shelf next to the pointer while something is Shift-dragged.
     func showForDrag() {
         guard isEnabled, dragShelfID == nil else { return }

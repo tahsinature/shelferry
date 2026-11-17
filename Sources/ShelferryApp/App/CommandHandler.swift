@@ -5,9 +5,8 @@ import ShelferryProtocol
 final class CommandHandler {
     var onSettings: () -> Void = {}
     let windows: ShelfWindows
-    let manager: ShelfManagerController
-    init(windows: ShelfWindows, manager: ShelfManagerController) {
-        self.windows = windows; self.manager = manager
+    init(windows: ShelfWindows) {
+        self.windows = windows
     }
     var library: ShelfLibrary { windows.library }
 
@@ -51,7 +50,8 @@ final class CommandHandler {
                 } else if request.command == "toggle" { windows.toggleAll() }
                 else if request.command == "hide" { windows.hideAll() }
                 else { if library.isEmpty { windows.newShelf(focus: false) } else { windows.showAll() } }
-            case "manager": manager.toggle(library: library)
+            // Compatibility for older launchers; the visual manager has been removed.
+            case "manager": windows.toggleAll()
             case "settings": onSettings()
             case "rename":
                 let shelf = try find(request.shelf)

@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ShelfConversionReviewView: View {
     let model: ShelfImageConversionModel
-    var showsActions = true
     @ViewState private var showsOriginal = false
 
     var body: some View {
@@ -38,21 +37,19 @@ struct ShelfConversionReviewView: View {
                 Divider()
                 Text(model.replaceExplanation).font(.caption2).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                if showsActions {
-                    Text(model.results.count > 1 ? "Save actions apply to all \(model.results.count) results." : "Choose how to save this result.")
-                        .font(.caption2).foregroundStyle(.secondary)
-                    HStack {
-                        Button("Discard", action: model.discard).buttonStyle(.plain).foregroundStyle(.secondary)
-                        Spacer(minLength: 4)
-                        Button(model.saveCopyTitle) { model.save(.copy) }.disabled(!model.canSave)
-                    }
-                    Button { model.save(.replace) } label: {
-                        Text(model.replaceTitle).frame(maxWidth: .infinity).fixedSize(horizontal: false, vertical: true)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(!model.canSave)
+                Text(model.results.count > 1 ? "Save actions apply to all \(model.results.count) results." : "Choose how to save this result.")
+                    .font(.caption2).foregroundStyle(.secondary)
+                HStack {
+                    Button("Discard", action: model.discard).buttonStyle(.plain).foregroundStyle(.secondary)
+                    Spacer(minLength: 4)
+                    Button(model.saveCopyTitle) { model.save(.copy) }.disabled(!model.canSave)
                 }
+                Button { model.save(.replace) } label: {
+                    Text(model.replaceTitle).frame(maxWidth: .infinity).fixedSize(horizontal: false, vertical: true)
+                }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+                .disabled(!model.canSave)
             }
         }
         .controlSize(.small)

@@ -67,7 +67,7 @@ struct PreferencesView: View {
                         store.update { $0.shortcuts[action.rawValue] = combo?.description }
                     })
                 }
-                if action != .manager { Divider() }
+                if action != GlobalShelfAction.allCases.last { Divider() }
             }
         }
     }

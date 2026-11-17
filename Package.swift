@@ -10,7 +10,7 @@ let package = Package(
     targets: [
         .target(name: "ShelferryCore"),
         .target(name: "ShelferryProtocol"),
-        .target(name: "ShelferryDesignSystem", dependencies: ["ShelferryCore"]),
+        .target(name: "ShelferryDesignSystem"),
         .target(name: "ShelfFeature", dependencies: ["ShelferryCore", .product(name: "ComposableArchitecture", package: "swift-composable-architecture")]),
         .executableTarget(name: "ShelferryApp", dependencies: ["ShelferryCore", "ShelferryDesignSystem", "ShelferryProtocol", "ShelfFeature", .product(name: "ComposableArchitecture", package: "swift-composable-architecture")]),
         .executableTarget(name: "ShelferryCLI", dependencies: ["ShelferryProtocol"]),

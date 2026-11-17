@@ -15,6 +15,8 @@ struct Preferences: Codable, Equatable {
         shiftDragOpens = try values.decodeIfPresent(Bool.self, forKey: .shiftDragOpens) ?? true
         removeAfterDragOut = try values.decodeIfPresent(Bool.self, forKey: .removeAfterDragOut) ?? false
         shortcuts = try values.decodeIfPresent([String: String].self, forKey: .shortcuts) ?? [:]
+        // Retired actions must not invalidate the rest of an existing configuration.
+        shortcuts.removeValue(forKey: "manager")
     }
 
     func validate() throws {
@@ -30,10 +32,10 @@ struct Preferences: Codable, Equatable {
 }
 
 enum GlobalShelfAction: String, CaseIterable, Identifiable {
-    case toggle, newShelf, manager
+    case toggle, newShelf
     var id: String { rawValue }
     var title: String {
-        switch self { case .toggle: "Show / Hide Shelves"; case .newShelf: "New Shelf"; case .manager: "Shelf Manager" }
+        switch self { case .toggle: "Show / Hide Shelves"; case .newShelf: "New Shelf" }
     }
 }
 

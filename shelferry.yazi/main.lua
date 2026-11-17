@@ -110,6 +110,6 @@ return { entry = function(_, job)
   local action = job.args[1] or "add"
   if action == "get" then get()
   elseif action == "add" then add()
-  elseif action == "toggle" or action == "manager" then request({ action })
-  else notify("Use add, get, toggle, or manager", "error") end
+  elseif action == "toggle" or action == "manager" then request({ "toggle" })
+  else notify("Use add, get, or toggle", "error") end
 end }

@@ -39,38 +39,4 @@ struct ShelfFeatureTests {
         await store.finish()
     }
 
-    @Test func managerSearchRenameAndBackPreserveExpectedSelection() async {
-        let item = ShelfSummary.Item(id: UUID(), name: "Report.pdf")
-        let first = ShelfSummary(id: UUID(), name: "Work", lastUsed: Date(timeIntervalSince1970: 1), items: [item])
-        let second = ShelfSummary(id: UUID(), name: "Personal", lastUsed: Date(timeIntervalSince1970: 2), items: [])
-        let store = TestStore(initialState: ShelfManagerFeature.State(shelves: [first, second])) { ShelfManagerFeature() }
-        store.exhaustivity = .off(showSkippedAssertions: false)
-        #expect(store.state.visibleShelves.map(\.id) == [second.id, first.id])
-        await store.send(.queryChanged("report"))
-        #expect(store.state.visibleShelves.map(\.id) == [first.id])
-        await store.send(.startRenaming(first.id))
-        await store.send(.queryChanged("Renamed"))
-        #expect(store.state.visibleShelves.count == 2)
-        await store.send(.moveSelection(Int.max))
-        #expect(store.state.selectedShelfID == first.id)
-        await store.send(.finishRenaming)
-        await store.send(.open(first.id))
-        #expect(store.state.selectedItem?.id == item.id)
-        await store.send(.closeShelf)
-        #expect(store.state.selectedShelfID == first.id)
-    }
-
-    @Test func managerBoundsNavigationAndFreezesItDuringConversion() async {
-        let shelves = (0..<5).map { ShelfSummary(id: UUID(), name: "Shelf \($0)", lastUsed: Date(timeIntervalSince1970: Double($0)), items: []) }
-        let store = TestStore(initialState: ShelfManagerFeature.State(shelves: shelves)) { ShelfManagerFeature() }
-        store.exhaustivity = .off(showSkippedAssertions: false)
-        await store.send(.moveSelection(Int.max))
-        #expect(store.state.selectedShelfID == shelves.first?.id)
-        await store.send(.conversionPresented(true))
-        await store.send(.moveSelection(Int.min))
-        #expect(store.state.selectedShelfID == shelves.first?.id)
-        await store.send(.conversionPresented(false))
-        await store.send(.moveSelection(Int.min))
-        #expect(store.state.selectedShelfID == shelves.last?.id)
-    }
 }

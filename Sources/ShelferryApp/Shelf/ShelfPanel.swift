@@ -2,7 +2,7 @@ import AppKit
 import Quartz
 import SwiftUI
 
-/// The floating shelf window. Unlike `FloatingPanel` it stays open when you click elsewhere,
+/// The floating shelf window stays open when you click elsewhere,
 /// and it never takes focus away from the app you're working in.
 final class ShelfPanel: NSPanel {
     /// Handles a key press while the shelf is focused. Returns `false` to let it through.

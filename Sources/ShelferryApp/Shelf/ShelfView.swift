@@ -209,11 +209,12 @@ private struct ShelfStack: View {
             .overlay(
                 ShelfDragArea(
                     items: { shelf.items },
+                    onClick: { _ in shelf.onQuickLook(shelf.readyURLs) },
+                    tooltip: "Click to preview every item, or drag into another app",
                     menu: { ShelfItemMenu.make(for: shelf.items, on: shelf) },
                     onDropped: { shelf.didDragOut($0) }
                 )
             )
-            .help("Drag every item into another app")
             .onHover { hovering in
                 guard hovering != isHovered else { return }
                 isHovered = hovering

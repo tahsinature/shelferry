@@ -1,4 +1,5 @@
 .build/
+.playground/
 build/
 .DS_Store
 .swiftpm/

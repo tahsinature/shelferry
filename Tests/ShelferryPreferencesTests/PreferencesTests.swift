@@ -11,9 +11,19 @@ struct PreferencesTests {
         #expect(value.shortcuts.isEmpty)
     }
 
+    @Test func retiredManagerHotkeyDoesNotInvalidateExistingSettings() throws {
+        let data = Data(#"{"shiftDragOpens":false,"shortcuts":{"manager":"ctrl+opt+s","toggle":"ctrl+opt+s"}}"#.utf8)
+        let value = try JSONDecoder().decode(Preferences.self, from: data)
+        try value.validate()
+        #expect(!value.shiftDragOpens)
+        #expect(value.shortcuts == ["toggle": "ctrl+opt+s"])
+        let saved = try JSONDecoder().decode(Preferences.self, from: JSONEncoder().encode(value))
+        #expect(saved == value)
+    }
+
     @Test func rejectsInvalidAndDuplicateHotkeys() {
         var value = Preferences()
-        value.shortcuts = ["toggle": "ctrl+opt+s", "manager": "control+alt+s"]
+        value.shortcuts = ["toggle": "ctrl+opt+s", "newShelf": "control+alt+s"]
         #expect(throws: (any Error).self) { try value.validate() }
         value.shortcuts = ["unknown": "ctrl+opt+s"]
         #expect(throws: (any Error).self) { try value.validate() }

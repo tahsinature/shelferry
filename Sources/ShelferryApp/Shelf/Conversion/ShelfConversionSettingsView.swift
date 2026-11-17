@@ -4,7 +4,6 @@ import ShelferryCore
 
 struct ShelfConversionSettingsView: View {
     @Bindable var model: ShelfImageConversionModel
-    var showsActions = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 13) {
@@ -41,14 +40,12 @@ struct ShelfConversionSettingsView: View {
             Text("Convert first, then preview and choose how to save.")
                 .font(.caption2).foregroundStyle(.secondary)
             if !model.errors.isEmpty { ConversionErrorList(messages: model.errors) }
-            if showsActions {
-                HStack {
-                    Text("Esc to go back").font(.caption2).foregroundStyle(.tertiary)
-                    Spacer(minLength: 4)
-                    Button("Convert", action: model.convert)
-                        .buttonStyle(.borderedProminent)
-                        .keyboardShortcut(.defaultAction)
-                }
+            HStack {
+                Text("Esc to go back").font(.caption2).foregroundStyle(.tertiary)
+                Spacer(minLength: 4)
+                Button("Convert", action: model.convert)
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
             }
         }
         .font(.system(size: 11))

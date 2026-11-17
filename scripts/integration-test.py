@@ -54,7 +54,9 @@ with tempfile.TemporaryDirectory(prefix="shelferry-test-", dir="/tmp") as tempor
         run("clear", "--shelf", shelf["id"], success=False)
         assert len(run("items", "--shelf", shelf["id"])["items"]) == 2
         run("rename", "--shelf", shelf["id"], "--name", "Renamed")
-        run("toggle"); run("toggle"); run("manager"); run("manager")
+        run("toggle"); run("toggle")
+        # Older integrations now toggle floating shelves without opening a manager.
+        run("manager"); run("manager")
         second = subprocess.run([str(app), "--background"], env=env, capture_output=True, timeout=10)
         assert second.returncode == 0
         assert len(run("items", "--shelf", shelf["id"])["items"]) == 2

@@ -14,7 +14,7 @@ The app and `shelferry` command install together. Requires macOS 14 or later. In
 
 ## Use
 
-Open Shelferry from Applications. Drop files onto a shelf, choosing links to originals or independent copies. Hold Shift during a file drag to show a shelf. Use the menu bar to create shelves, toggle visibility, open Shelf Manager, or change drag preferences. Quick Look, multi-file dragging, renaming, and image conversion come from Tooki's native Shelf.
+Open Shelferry from Applications. Drop files onto a shelf, choosing links to originals or independent copies. Hold Shift during a file drag to show a shelf. Use the menu bar to create shelves, toggle visibility, or change drag preferences. Quick Look, multi-file dragging, renaming, and image conversion come from Tooki's native Shelf.
 
 ```sh
 shelferry new --name Work
@@ -22,7 +22,6 @@ shelferry add --shelf Work --copy -- ~/Downloads/report.pdf
 shelferry list --json
 shelferry items --shelf Work --json
 shelferry toggle
-shelferry manager
 shelferry clear --shelf Work --yes
 ```
 
@@ -48,7 +47,7 @@ run = "plugin shelferry -- get"
 desc = "Get from Shelferry"
 ```
 
-The plugin also accepts `toggle` and `manager`. `fzf` is optional; without it, shelf selection uses a paginated key menu. Set `SHELFERRY_BIN` if the CLI is outside PATH. The plugin passes paths as individual arguments and uses JSON, so spaces, Unicode, tabs and newlines stay intact.
+The plugin also accepts `toggle`. `fzf` is optional; without it, shelf selection uses a paginated key menu. Set `SHELFERRY_BIN` if the CLI is outside PATH. The plugin passes paths as individual arguments and uses JSON, so spaces, Unicode, tabs and newlines stay intact.
 
 Existing Tooki plugin installations and data are not migrated automatically. They can coexist. Install this plugin and switch your bindings when ready.
 
@@ -76,8 +75,7 @@ Settings save to `~/.config/shelferry/config.json`. Shelferry reloads external e
   "removeAfterDragOut": false,
   "shortcuts": {
     "toggle": "ctrl+opt+s",
-    "newShelf": "ctrl+opt+n",
-    "manager": "ctrl+opt+m"
+    "newShelf": "ctrl+opt+n"
   }
 }
 ```

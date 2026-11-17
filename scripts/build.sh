@@ -4,6 +4,11 @@ cd "$(dirname "$0")/.."
 configuration="${CONFIGURATION:-release}"
 version="${VERSION:-0.1.1}"
 architecture="${ARCHS:-$(uname -m)}"
+build_channel="${BUILD_CHANNEL:-dev}"
+case "$build_channel" in
+  dev|prod) ;;
+  *) printf 'BUILD_CHANNEL must be dev or prod.\n' >&2; exit 1 ;;
+esac
 args=()
 for arch in $architecture; do args+=(--arch "$arch"); done
 bash scripts/swift.sh build -c "$configuration" "${args[@]}"
@@ -16,6 +21,7 @@ cp "$bin/ShelferryCommand" "$app/Contents/Helpers/shelferry"
 cp Resources/Info.plist "$app/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $version" "$app/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${BUILD_NUMBER:-1}" "$app/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :ShelferryBuildChannel $build_channel" "$app/Contents/Info.plist"
 if [[ -f Resources/AppIcon.icns ]]; then cp Resources/AppIcon.icns "$app/Contents/Resources/"; fi
 # SwiftPM app resource accessors look in Bundle.main.resourceURL.
 for resource in "$bin"/*.bundle; do

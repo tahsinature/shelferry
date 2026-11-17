@@ -36,6 +36,7 @@ jobs:
         env:
           ARCHS: arm64 x86_64
           BUILD_NUMBER: ${{ github.run_number }}
+          BUILD_CHANNEL: prod
         run: ./scripts/build.sh
       - run: python3 scripts/integration-test.py
       - name: Package Homebrew cask

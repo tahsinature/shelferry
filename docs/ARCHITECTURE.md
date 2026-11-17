@@ -1,11 +1,11 @@
 # Architecture
 
-Shelferry is extracted from Tooki's original Swift Shelf, retaining its AppKit panels, SwiftUI content, drag/drop, Quick Look, manager, and image conversion. The original GPL license accompanies the code.
+Shelferry is extracted from Tooki's original Swift Shelf, retaining its AppKit panels, SwiftUI content, drag/drop, Quick Look, and image conversion. The original GPL license accompanies the code.
 
 - `ShelferryApp`: single owner of shelf state and disk writes. Native `ShelfPanel` instances host SwiftUI views. `ShelfLibrary` owns shelves; `ShelfWindows` owns panels.
-- `ShelfFeature`: existing TCA reducers for selection, confirmation, manager navigation and conversion.
+- `ShelfFeature`: existing TCA reducers for selection, confirmation and conversion.
 - `ShelferryCore`: portable helpers and native image conversion services used by those reducers.
-- `ShelferryDesignSystem`: shared panel UI extracted from Tooki.
+- `ShelferryDesignSystem`: colors and interaction styles used by floating shelves and settings.
 - `ShelferryProtocol`: versioned JSON requests/replies, argument parsing, same-user Unix socket transport.
 - `ShelferryCLI`: validates arguments, launches the app when necessary, sends one request, prints results and exits with a meaningful status.
 - `shelferry.yazi`: selected/hovered file collection and picker UI. All shelf operations go through the CLI.
