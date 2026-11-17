@@ -52,7 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updater.hasPendingWork = { [weak self] in
             guard let self else { return false }
             return activeRequests > 0 || library.shelves.contains {
-                !$0.copyingIDs.isEmpty || $0.imageConversion != nil
+                !$0.copyingIDs.isEmpty || $0.imageConversion != nil || $0.connection.isRefreshing
             }
         }
         updater.start()

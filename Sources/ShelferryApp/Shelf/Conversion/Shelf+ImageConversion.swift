@@ -26,9 +26,11 @@ extension Shelf {
     /// Validate the entire selection, never just its image subset. A folder, PDF, text,
     /// link, missing file or unfinished copy suppresses the menu action.
     func canConvertImages(_ candidates: [ShelfItem]) -> Bool {
-        guard !candidates.isEmpty, candidates.allSatisfy({ item in
+        guard !connection.isRefreshing, !candidates.isEmpty, candidates.allSatisfy({ item in
+            canEdit(item) &&
             !item.isLink && item.text == nil && !copyingIDs.contains(item.id) && items.contains(item)
         }) else { return false }
         return ImageConverter.supports(candidates.map(\.url))
     }
+
 }

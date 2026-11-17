@@ -24,6 +24,7 @@ final class ShelfLibrary {
     func load() throws {
         shelves = try Self.readSaved().map(Shelf.init(saved:))
         shelves.forEach(watch)
+        shelves.forEach { $0.connection.start() }
         let ownedFiles = shelves.flatMap(\.items).filter(\.ownsFile).map(\.url)
         ShelfStorage.deleteUnused(keeping: ownedFiles)
         save()
@@ -40,10 +41,14 @@ final class ShelfLibrary {
 
     /// Takes the shelf away for good. Shelferry's own copies on it are deleted.
     func remove(_ shelf: Shelf) {
+        shelf.connection.stop()
+        shelf.settingsWindow.close()
+        ConnectionCredentials.delete(shelf.connectionSettings.credentialID)
         shelf.imageConversion?.discard()
         shelf.clear()
         shelves.removeAll { $0.id == shelf.id }
         save()
+        try? FileManager.default.removeItem(at: ConnectionManifest.directory(for: shelf.id))
     }
 
     func dropMissingFiles() {
@@ -88,4 +93,5 @@ struct SavedShelf: Codable {
     var name: String
     var lastUsed: Date
     var items: [ShelfItem]
+    var connection: ShelfConnectionSettings? = nil
 }

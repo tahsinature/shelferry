@@ -63,7 +63,12 @@ final class CommandHandler {
                 guard request.confirmed else { throw ServiceError("Pass --yes to delete Shelferry-owned copies.") }
                 let shelf = try find(request.shelf)
                 if request.command == "delete" { windows.removeImmediately(shelf) }
-                else { shelf.clear() }
+                else {
+                    guard !shelf.connectionSettings.isConnected else {
+                        throw ServiceError("Disconnect the source in Shelf Settings before clearing connected items.")
+                    }
+                    shelf.clear()
+                }
             default: throw ServiceError("Unknown command: \(request.command)")
             }
             try library.flush()

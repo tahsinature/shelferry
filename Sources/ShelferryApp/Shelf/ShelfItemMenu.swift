@@ -45,10 +45,10 @@ enum ShelfItemMenu {
             menu.addItem(.separator())
         }
 
-        menu.addItem(action("Rename…", enabled: ready.count == 1 && items.count == 1) {
+        menu.addItem(action("Rename…", enabled: ready.count == 1 && items.count == 1 && items.allSatisfy(shelf.canEdit)) {
             if let item = ready.first { ShelfRenamePrompt.run(for: item, on: shelf) }
         })
-        menu.addItem(action("Remove from Shelf") { shelf.remove(Set(items.map(\.id))) })
+        menu.addItem(action("Remove from Shelf", enabled: items.allSatisfy(shelf.canEdit)) { shelf.remove(Set(items.map(\.id))) })
         return menu
     }
 

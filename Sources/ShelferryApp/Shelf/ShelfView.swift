@@ -74,8 +74,16 @@ struct ShelfView: View {
     private var content: some View {
         VStack(spacing: 0) {
             ShelfHeader(shelf: shelf, onHide: onHide, onDelete: onDelete, onClear: onClear)
+            if shelf.connectionSettings.isConnected { ShelfConnectionStatusView(shelf: shelf) }
             if shelf.isEmpty && !shelf.isShowingConversion {
-                ShelfEmptyView()
+                if shelf.connectionSettings.isConnected {
+                    VStack(spacing: 6) {
+                        Image(systemName: "tray").font(.title2)
+                        Text("No connected items yet").font(.callout.weight(.semibold))
+                        Button("Shelf Settings…", action: shelf.settingsWindow.show)
+                    }
+                    .padding(20)
+                } else { ShelfEmptyView() }
             } else if shelf.isExpanded {
                 ShelfPages(shelf: shelf, namespace: namespace)
                 if !shelf.isShowingConversion {

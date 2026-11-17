@@ -195,6 +195,7 @@ struct ShelfClearButton: View {
         .font(.caption.weight(.medium))
         .fixedSize()
         .help(isArmed ? "Click again to clear. Originals stay where they are." : "Remove every item")
+        .disabled(!shelf.items.contains(where: shelf.canEdit))
         .onHover { inside in if !inside, isArmed { shelf.disarm() } }
         .animation(.spring(duration: 0.3, bounce: 0.3), value: isArmed)
     }

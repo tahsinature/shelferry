@@ -73,6 +73,12 @@ private struct ShelfMoreMenu: View {
 
     var body: some View {
         Menu {
+            Button("Shelf Settings…", action: shelf.settingsWindow.show)
+            if shelf.connectionSettings.isConnected {
+                Button("Refresh Now", action: shelf.connection.refresh).disabled(shelf.connection.isRefreshing)
+                Button(shelf.connectionSettings.paused ? "Resume" : "Pause", action: shelf.connection.togglePause)
+            }
+            Divider()
             Button("Rename", action: onRename)
             if !shelf.isEmpty {
                 Button("Show All in Finder") {
@@ -84,7 +90,7 @@ private struct ShelfMoreMenu: View {
                 }
             }
             Divider()
-            if !shelf.isEmpty { Button("Clear", action: onClear) }
+            if shelf.items.contains(where: shelf.canEdit) { Button("Clear", action: onClear) }
             Button("Delete Shelf", role: .destructive, action: onDelete)
         } label: {
             Image(systemName: "ellipsis")

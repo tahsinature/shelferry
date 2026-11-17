@@ -16,6 +16,11 @@ final class Shelf: Identifiable {
         didSet { store.send(.itemsChanged(items.map(\.id))) }
     }
     let store: StoreOf<ShelfFeature>
+    var connectionSettings = ShelfConnectionSettings()
+    @ObservationIgnored lazy var connection = ShelfConnection(shelf: self)
+    @ObservationIgnored lazy var settingsWindow = ShelfSettingsWindow(shelf: self)
+    var acceptsManualItems: Bool { !connectionSettings.isConnected || connectionSettings.mode == .collect }
+    func canEdit(_ item: ShelfItem) -> Bool { !connectionSettings.isConnected || item.connectionKey == nil }
     var selection: Set<ShelfItem.ID> {
         get { store.selection }
         set { store.send(.selectionChanged(newValue)) }
@@ -45,6 +50,12 @@ final class Shelf: Identifiable {
     /// Copies still being made. They show as "Copying…" and can't be dragged out yet.
     private(set) var copyingIDs: Set<ShelfItem.ID> = []
     @ObservationIgnored var removeAfterDragOut = false
+    /// Includes pending copies at their source paths, so concurrent drops reserve their space.
+    var manualStorageURLs: [URL] {
+        items.filter { $0.connectionKey == nil && $0.ownsFile }.map { item in
+            copyingIDs.contains(item.id) ? item.originalPath.map(URL.init(fileURLWithPath:)) ?? item.url : item.url
+        }
+    }
     /// The item the arrow keys move from: the last one clicked or reached with an arrow.
     var cursor: ShelfItem.ID? { store.cursor }
 
@@ -67,7 +78,8 @@ final class Shelf: Identifiable {
         id = saved.id
         name = saved.name
         lastUsed = saved.lastUsed
-        let availableItems = saved.items.filter(\.exists)
+        connectionSettings = saved.connection ?? ShelfConnectionSettings()
+        let availableItems = saved.items.filter { $0.exists || $0.connectionKey != nil }
         items = availableItems
         store = Store(initialState: ShelfFeature.State(itemIDs: availableItems.map(\.id))) { ShelfFeature() }
     }
@@ -94,7 +106,7 @@ final class Shelf: Identifiable {
 
     /// Copies still being made aren't saved; if Shelferry quits mid-copy they're simply gone.
     var saved: SavedShelf {
-        SavedShelf(id: id, name: name, lastUsed: lastUsed, items: items.filter { !copyingIDs.contains($0.id) })
+        SavedShelf(id: id, name: name, lastUsed: lastUsed, items: items.filter { !copyingIDs.contains($0.id) }, connection: connectionSettings)
     }
 
     func rename(to newName: String) {
@@ -106,6 +118,7 @@ final class Shelf: Identifiable {
 
     /// Renames the item's file on disk: the real file for an original, Shelferry's file for a copy.
     func rename(_ item: ShelfItem, to newName: String) throws {
+        guard canEdit(item) else { throw ConnectionError("Connected items are managed by their source.") }
         let name = newName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty, !name.contains("/"), name != item.url.lastPathComponent,
               let index = items.firstIndex(where: { $0.id == item.id })
@@ -162,6 +175,7 @@ final class Shelf: Identifiable {
     /// Adds files or folders, either as links to the originals or as Shelferry's own copies.
     /// An original and a copy of the same file can sit side by side; two of the same kind can't.
     func add(fileURLs: [URL], mode: ShelfAddMode) {
+        guard acceptsManualItems, !connection.isRefreshing else { return }
         switch mode {
         case .original: add(fileURLs.map(ShelfItem.init(fileURL:)))
         case .copy: fileURLs.forEach(addCopy)
@@ -169,6 +183,7 @@ final class Shelf: Identifiable {
     }
 
     func add(_ newItems: [ShelfItem]) {
+        guard acceptsManualItems else { return }
         let known = Set(items.map(\.dedupeKey))
         let fresh = newItems.filter { !known.contains($0.dedupeKey) }
         guard !fresh.isEmpty else { return }
@@ -180,13 +195,25 @@ final class Shelf: Identifiable {
     /// Adds whatever the pasteboard holds. Returns `false` when there was nothing usable.
     @discardableResult
     func add(from pasteboard: NSPasteboard, mode: ShelfAddMode = .original) -> Bool {
+        guard acceptsManualItems, !connection.isRefreshing else { return false }
         let fileURLs = ShelfContentReader.fileURLs(from: pasteboard)
         if !fileURLs.isEmpty {
             add(fileURLs: fileURLs, mode: mode)
             return true
         }
         let savedItems = ShelfContentReader.savedItems(from: pasteboard)
-        add(savedItems)
+        if connectionSettings.isConnected {
+            Task {
+                do {
+                    try await connection.checkManualStorage(manualStorageURLs + savedItems.map(\.url))
+                    guard acceptsManualItems, !connection.isRefreshing else { throw ConnectionError("The shelf is refreshing. Retry the paste.") }
+                    add(savedItems)
+                } catch {
+                    savedItems.forEach { ShelfStorage.deleteFolder(of: $0.url) }
+                    connection.report(error)
+                }
+            }
+        } else { add(savedItems) }
         return !savedItems.isEmpty
     }
 
@@ -199,6 +226,13 @@ final class Shelf: Identifiable {
         lastUsed = Date()
         copyingIDs.insert(item.id)
         Task {
+            do { try await connection.checkManualStorage(manualStorageURLs) }
+            catch {
+                copyingIDs.remove(item.id)
+                remove([item.id])
+                connection.report(error)
+                return
+            }
             let copied = await ShelfStorage.copy(original, to: copyURL)
             copyingIDs.remove(item.id)
             let stillOnShelf = items.contains { $0.id == item.id }
@@ -216,6 +250,7 @@ final class Shelf: Identifiable {
     /// Shelferry's own files are deleted with their items. `deleteAfter` gives an app the item was
     /// dropped into time to read the file, like a web upload field that sends it a bit later.
     func remove(_ ids: Set<ShelfItem.ID>, deleteAfter delay: Duration = .zero) {
+        let ids = Set(items.filter { ids.contains($0.id) && canEdit($0) }.map(\.id))
         let removed = items.filter { ids.contains($0.id) }
         guard !removed.isEmpty else { return }
         items.removeAll { ids.contains($0.id) }
@@ -227,13 +262,13 @@ final class Shelf: Identifiable {
 
     /// Drops items whose file was moved or deleted outside Shelferry, e.g. in Finder or yazi.
     func dropMissingFiles() {
-        let missing = items.filter { !copyingIDs.contains($0.id) && !$0.exists }
+        let missing = items.filter { $0.connectionKey == nil && !copyingIDs.contains($0.id) && !$0.exists }
         remove(Set(missing.map(\.id)))
     }
 
     /// Called after items were dropped somewhere outside the shelf.
     func didDragOut(_ draggedItems: [ShelfItem]) {
-        guard removeAfterDragOut else { return }
+        guard removeAfterDragOut, acceptsManualItems else { return }
         remove(Set(draggedItems.map(\.id)), deleteAfter: .seconds(60))
     }
 
@@ -241,12 +276,28 @@ final class Shelf: Identifiable {
         guard !removed.isEmpty else { return }
         Task {
             if delay > .zero { try? await Task.sleep(for: delay) }
-            removed.forEach { ShelfStorage.deleteFolder(of: $0.url) }
+            let connectedRoot = ConnectionManifest.directory(for: id).standardizedFileURL.path + "/"
+            removed.forEach {
+                if $0.url.standardizedFileURL.path.hasPrefix(connectedRoot) {
+                    try? FileManager.default.removeItem(at: $0.url)
+                } else { ShelfStorage.deleteFolder(of: $0.url) }
+            }
         }
     }
 
     func clear() {
         remove(Set(items.map(\.id)))
+    }
+
+    /// Source transactions bypass manual-edit restrictions, without touching original files.
+    func replaceConnectedItems(_ connected: [ShelfItem], removeManual: Bool) {
+        let manual = items.filter { $0.connectionKey == nil }
+        items = (removeManual ? [] : manual) + connected
+        if removeManual { deleteOwnedFiles(of: manual.filter(\.ownsFile), after: .zero) }
+    }
+
+    func detachConnectedItems() {
+        for index in items.indices { items[index].connectionKey = nil }
     }
 
     /// A plain click selects one item; ⌘ or ⇧ adds it to or removes it from the selection.

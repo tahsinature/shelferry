@@ -10,6 +10,8 @@ struct ShelfItem: Codable, Identifiable, Equatable, Sendable {
     var id = UUID()
     /// Invalidates previews after replacing a file at the same path. Optional for older saved shelves.
     var conversionRevision: UUID?
+    /// Top-level path managed by this shelf's connection. Optional for existing shelves.
+    var connectionKey: String?
     private(set) var path: String
     /// Dropped text or a link. Dragging the item out offers this as well as the saved file.
     var text: String?
@@ -63,6 +65,7 @@ struct ShelfItem: Codable, Identifiable, Equatable, Sendable {
 
     /// What the Original or Copy badge means, shown when hovering over it.
     var tooltip: String {
+        if connectionKey != nil { return ownsFile ? "Copy maintained by this shelf's connection" : "Connected reference: editing or moving it affects the original" }
         if originalPath != nil { return "Copy: Shelferry's own file. The original never moves." }
         if isLink { return "Saved link" }
         if ownsFile { return "Copy: saved by Shelferry from a drop or paste" }
@@ -71,6 +74,7 @@ struct ShelfItem: Codable, Identifiable, Equatable, Sendable {
 
     /// What kind of item this is, for its details.
     var mode: String {
+        if connectionKey != nil { return ownsFile ? "Connected copy. The original stays at its source." : "Connected reference to the original file." }
         if originalPath != nil { return "Copy. The original never moves." }
         if ownsFile { return "Saved by Shelferry from a drop or paste" }
         return "Link to the original. Dragging it out can move it."
