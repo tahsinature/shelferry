@@ -61,10 +61,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func buildMenu() {
-        if statusItem == nil { statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength) }
-        let buildLabel = Bundle.main.object(forInfoDictionaryKey: "ShelferryBuildChannel") as? String == "prod" ? "Prod" : "Dev"
+        let isDevelopment = Bundle.main.object(forInfoDictionaryKey: "ShelferryBuildChannel") as? String != "prod"
+        if statusItem == nil {
+            statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+            if let button = statusItem?.button {
+                button.image = MenuBarIcon.paperStack()
+                if isDevelopment { MenuBarIcon.addDevelopmentBadge(to: button) }
+            }
+        }
+        let buildLabel = isDevelopment ? "Dev" : "Prod"
         let menuTitle = "Shelferry · \(buildLabel)"
-        statusItem?.button?.image = MenuBarIcon.paperStack()
         statusItem?.button?.toolTip = menuTitle
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: menuTitle, action: nil, keyEquivalent: ""))

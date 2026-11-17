@@ -1,6 +1,19 @@
 import AppKit
 
 enum MenuBarIcon {
+    @MainActor
+    static func addDevelopmentBadge(to button: NSStatusBarButton) {
+        let badge = DevelopmentBadgeView()
+        badge.translatesAutoresizingMaskIntoConstraints = false
+        button.addSubview(badge)
+        NSLayoutConstraint.activate([
+            badge.centerXAnchor.constraint(equalTo: button.centerXAnchor),
+            badge.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -1),
+            badge.widthAnchor.constraint(equalToConstant: 22),
+            badge.heightAnchor.constraint(equalToConstant: 10)
+        ])
+    }
+
     /// The Paper Stack artwork, with transparent cutouts for macOS template tinting.
     static func paperStack() -> NSImage {
         let image = NSImage(size: NSSize(width: 20, height: 20), flipped: true) { _ in
@@ -35,5 +48,23 @@ enum MenuBarIcon {
         image.isTemplate = true
         image.accessibilityDescription = "Shelferry Paper Stack"
         return image
+    }
+}
+
+/// A separate overlay preserves automatic template tinting for the paper stack.
+private final class DevelopmentBadgeView: NSView {
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    override func draw(_ dirtyRect: NSRect) {
+        NSColor(calibratedRed: 1, green: 0.69, blue: 0.25, alpha: 1).setFill()
+        NSBezierPath(roundedRect: bounds, xRadius: 4, yRadius: 4).fill()
+
+        let label = NSAttributedString(string: "DEV", attributes: [
+            .font: NSFont.systemFont(ofSize: 8, weight: .heavy),
+            .foregroundColor: NSColor.black
+        ])
+        let size = label.size()
+        label.draw(at: NSPoint(x: (bounds.width - size.width) / 2,
+                               y: (bounds.height - size.height) / 2))
     }
 }
