@@ -6,7 +6,6 @@ import SwiftUI
 /// It sizes itself, and reports its size so the panel can follow.
 struct ShelfView: View {
     let shelf: Shelf
-    let onHide: () -> Void
     let onDelete: () -> Void
     let onClear: () -> Void
     let onSizeChange: (CGSize) -> Void
@@ -25,47 +24,24 @@ struct ShelfView: View {
                 if let target = shelf.dropTarget { ShelfDropZone(target: target) }
             }
             .background(.thinMaterial, in: shape)
-            .overlay { if isHolding { ShelfHoldOverlay() } }
             .clipShape(shape)
             .overlay { if isFocused { ShelfFocusGlow(shape: shape) } }
             .overlay(shape.strokeBorder(borderColor, lineWidth: borderWidth))
-            .scaleEffect(scale)
-            .blur(radius: shelf.leaving == .closing ? 12 : 0)
-            .offset(y: shelf.leaving == .hiding ? 16 : 0)
-            .opacity(shelf.leaving == nil ? 1 : 0)
-            .animation(.easeOut(duration: 0.2), value: isFocused)
-            // Shrinks slowly while Esc is held, and springs back when it's let go.
-            .animation(holdAnimation, value: isHolding)
-            .animation(.easeIn(duration: ShelfMotion.leave), value: shelf.leaving)
             .fixedSize()
             .onGeometryChange(for: CGSize.self, of: \.size) { onSizeChange($0) }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var isDropping: Bool { shelf.dropTarget != nil }
-    private var isHolding: Bool { shelf.isHoldingToDelete }
-    private var isFocused: Bool { shelf.isFocused && !isDropping && !isHolding }
-
-    private var scale: CGFloat {
-        if isHolding { return 0.88 }
-        return shelf.leaving == .closing ? 0.5 : 1
-    }
-
-    /// Letting go of Esc springs back, unless the shelf is already on its way out.
-    private var holdAnimation: Animation {
-        if isHolding { return .linear(duration: ShelfMotion.holdToDelete) }
-        if shelf.leaving != nil { return .easeIn(duration: ShelfMotion.leave) }
-        return .spring(duration: 0.4, bounce: 0.5)
-    }
+    private var isFocused: Bool { shelf.isFocused && !isDropping }
 
     private var borderColor: Color {
-        if isHolding { return .red }
         if isDropping || isFocused { return .accentColor }
         return Color(nsColor: .separatorColor)
     }
 
     private var borderWidth: CGFloat {
-        if isDropping || isHolding { return 2 }
+        if isDropping { return 2 }
         return isFocused ? 1.5 : 1
     }
 
@@ -73,7 +49,7 @@ struct ShelfView: View {
     @ViewBuilder
     private var content: some View {
         VStack(spacing: 0) {
-            ShelfHeader(shelf: shelf, onHide: onHide, onDelete: onDelete, onClear: onClear)
+            ShelfHeader(shelf: shelf, onDelete: onDelete, onClear: onClear)
             if shelf.connectionSettings.isConnected { ShelfConnectionStatusView(shelf: shelf) }
             if shelf.isEmpty && !shelf.isShowingConversion {
                 if shelf.connectionSettings.isConnected {
@@ -158,35 +134,12 @@ private struct ShelfFocusGlow<S: InsettableShape>: View {
     }
 }
 
-/// While Esc is held: the shelf turns red and says what's about to happen.
-private struct ShelfHoldOverlay: View {
-    var body: some View {
-        ZStack {
-            Color.red.opacity(0.35)
-            VStack(spacing: 6) {
-                Image(systemName: "trash.fill")
-                    .font(.system(size: 22, weight: .semibold))
-                Text("Keep holding Esc to delete")
-                    .font(.caption.weight(.semibold))
-            }
-            .foregroundStyle(.white)
-            .shadow(radius: 4)
-        }
-        .allowsHitTesting(false)
-    }
-}
-
 /// How the shelf moves between the stack and the list: one width, a spring on the height.
 enum ShelfMotion {
     static let width: CGFloat = 300
     static let duration = 0.35
     static let spring = Animation.spring(duration: duration, bounce: 0.15)
-    /// Esc has to be held this long before the shelf starts turning red, so a tap never flashes.
-    static let holdDelay = Duration.milliseconds(250)
-    /// Then this many seconds more to delete the shelf.
-    static let holdToDelete = 1.0
-    /// How long hiding or closing a shelf takes.
-    static let leave = 0.22
+
 }
 
 /// The collapsed shelf: a pile of the latest items next to their names. Drag the pile to take

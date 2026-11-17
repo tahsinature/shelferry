@@ -7,7 +7,7 @@ import ShelferryCore
 @MainActor
 final class ShelfPanelController {
     let shelf: Shelf
-    /// Run by the shelf's Hide, Delete and Clear buttons. Esc on a folded shelf hides it too.
+    /// Esc hides the shelf. The trash button opens its deletion dialog.
     var onHide: () -> Void = {}
     var onDelete: () -> Void = {}
     var onClear: () -> Void = {}
@@ -19,10 +19,6 @@ final class ShelfPanelController {
     /// Tells a size change from folding or unfolding apart from others. The details page
     /// animates its own height, so the window just follows it.
     private var wasExpanded = false
-    /// Esc is down and counting towards a delete.
-    private var escapeHold: Task<Void, Never>?
-    /// The shelf's way out is playing.
-    private var leaving: Task<Void, Never>?
 
     init(shelf: Shelf) {
         self.shelf = shelf
@@ -49,41 +45,22 @@ final class ShelfPanelController {
             if let neighbour { place(besides: neighbour) } else { placeInCorner() }
         }
         hasBeenPlaced = true
-        stopLeaving()
-        if focus {
-            panel.makeKeyAndOrderFront(nil)
-        } else {
-            panel.orderFrontRegardless()
-        }
+        // Raise even a normal-level panel above the active app, without making it stay on top.
+        panel.orderFrontRegardless()
+        if focus { panel.makeKey() }
     }
 
-    /// Plays the shelf's way out, then takes it off screen. A hidden shelf slides down as it
-    /// fades; a closed one shrinks and blurs away.
-    func hide(_ way: ShelfLeaving = .hiding, then done: @escaping () -> Void = {}) {
-        guard isVisible else { return done() }
-        stopLeaving()
-        panel.hasShadow = false
-        shelf.leaving = way
-        leaving = Task { [self] in
-            try? await Task.sleep(for: .seconds(ShelfMotion.leave))
-            guard !Task.isCancelled else { return }
-            panel.orderOut(nil)
-            stopLeaving()
-            done()
-        }
-    }
-
-    private func stopLeaving() {
-        leaving?.cancel()
-        leaving = nil
-        shelf.leaving = nil
-        panel.hasShadow = !shelf.isHoldingToDelete
+    /// Hiding preserves the shelf and its current view, with no delay or transition.
+    func hide() {
+        guard isVisible else { return }
+        panel.quickLook.close()
+        shelf.disarm()
+        panel.orderOut(nil)
     }
 
     private func makePanel() -> ShelfPanel {
         let view = ShelfView(
             shelf: shelf,
-            onHide: { [weak self] in self?.onHide() },
             onDelete: { [weak self] in self?.onDelete() },
             onClear: { [weak self] in self?.onClear() },
             onSizeChange: { [weak self] size in self?.fit(to: size) }
@@ -92,71 +69,22 @@ final class ShelfPanelController {
         shelf.onQuickLook = { [weak panel] urls in panel?.quickLook.toggle(urls) }
         shelf.onCloseQuickLook = { [weak panel] in panel?.quickLook.close() }
         panel.onHide = { [weak self] in self?.onHide() }
-        panel.onEscapeKey = { [weak self] event in self?.handleEscape(event) }
         panel.onFocusChange = { [weak self] focused in
             self?.shelf.isFocused = focused
-            if !focused { self?.cancelHold() }
         }
         panel.quickLook.onArrowKey = { [weak self] event in self?.handleKey(event) ?? false }
         panel.onKey = { [weak self] event in self?.handleKey(event) ?? false }
         return panel
     }
 
-    /// A tap on Esc steps back: from an item's details to the list, then folds the list, then
-    /// hides the shelf. Holding it deletes the shelf; letting go too soon springs it back.
-    private func handleEscape(_ event: NSEvent) {
-        if shelf.isShowingConversion, let model = shelf.imageConversion {
-            if event.type == .keyDown, !event.isARepeat { model.back() }
-            return
-        }
-        if event.type == .keyDown {
-            guard !event.isARepeat, escapeHold == nil else { return }
-            if shelf.armed != nil { return shelf.disarm() }
-            escapeHold = Task { [weak self] in await self?.holdToDelete() }
-        } else if let hold = escapeHold {
-            hold.cancel()
-            escapeHold = nil
-            if shelf.isHoldingToDelete { setHolding(false) } else { stepBack() }
-        }
-    }
-
-    private func holdToDelete() async {
-        try? await Task.sleep(for: ShelfMotion.holdDelay)
-        guard !Task.isCancelled else { return }
-        setHolding(true)
-        try? await Task.sleep(for: .seconds(ShelfMotion.holdToDelete))
-        guard !Task.isCancelled else { return }
-        escapeHold = nil
-        setHolding(false)
-        onDelete()
-    }
-
-    /// When focus moves elsewhere, Esc's release may never arrive.
-    private func cancelHold() {
-        escapeHold?.cancel()
-        escapeHold = nil
-        if shelf.isHoldingToDelete { setHolding(false) }
-    }
-
-    /// The window's shadow doesn't follow the content as it shrinks, so it's off meanwhile.
-    private func setHolding(_ holding: Bool) {
-        shelf.isHoldingToDelete = holding
-        panel.hasShadow = !holding && shelf.leaving == nil
-    }
-
-    private func stepBack() {
-        if shelf.detailItem != nil {
-            shelf.isShowingDetail = false
-        } else if shelf.isExpanded {
-            shelf.isExpanded = false
-        } else {
-            onHide()
-        }
-    }
-
     private func handleKey(_ event: NSEvent) -> Bool {
         let shortcutModifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
-        if shortcutModifiers == .command, event.charactersIgnoringModifiers == "," {
+        let key = event.charactersIgnoringModifiers
+        if shortcutModifiers == [.command, .shift], key == "," || key == "<" {
+            if !event.isARepeat { shelf.settingsWindow.show() }
+            return true
+        }
+        if shortcutModifiers == .command, key == "," {
             if !event.isARepeat { onSettings() }
             return true
         }
@@ -174,9 +102,9 @@ final class ShelfPanelController {
         }
         // While the name is being edited, keys belong to the text field.
         if panel.firstResponder is NSText { return false }
-        let key = event.charactersIgnoringModifiers?.lowercased()
+        let commandKey = event.charactersIgnoringModifiers?.lowercased()
         if event.modifierFlags.contains(.command) {
-            switch key {
+            switch commandKey {
             case "v":
                 if !shelf.add(from: .general) { NSSound.beep() }
             case "a":
@@ -188,8 +116,8 @@ final class ShelfPanelController {
             }
             return true
         }
-        if let action = shelf.armed, [36, 76].contains(event.keyCode) { // Return or Enter confirms
-            action == .clear ? onClear() : onDelete()
+        if shelf.armed == .clear, [36, 76].contains(event.keyCode) { // Return or Enter confirms Clear
+            onClear()
             return true
         }
         if !shelf.isExpanded, !shelf.isEmpty, [36, 76, 125].contains(event.keyCode) { // Return, Enter, Down

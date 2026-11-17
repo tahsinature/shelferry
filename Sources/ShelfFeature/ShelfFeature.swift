@@ -1,7 +1,7 @@
 import ComposableArchitecture
 import Foundation
 
-public enum ShelfDestructiveAction: Equatable, Sendable { case clear, delete }
+public enum ShelfDestructiveAction: Equatable, Sendable { case clear }
 
 /// Selection and presentation state for a floating shelf. File ownership stays in the native app.
 @Reducer

@@ -7,8 +7,6 @@ import SwiftUI
 final class ShelfPanel: NSPanel {
     /// Handles a key press while the shelf is focused. Returns `false` to let it through.
     var onKey: (NSEvent) -> Bool = { _ in false }
-    /// Esc going down and coming back up, so a tap and a hold can do different things.
-    var onEscapeKey: (NSEvent) -> Void = { _ in }
     var onFocusChange: (Bool) -> Void = { _ in }
     var onHide: () -> Void = {}
     let quickLook = QuickLookPreview()
@@ -39,11 +37,11 @@ final class ShelfPanel: NSPanel {
 
     override var canBecomeKey: Bool { true }
 
-    /// Esc is caught here, before SwiftUI turns it into a cancel, unless a text field is being edited.
+    /// Esc always hides this shelf, including while editing or viewing details.
     override func sendEvent(_ event: NSEvent) {
         let isEscape = (event.type == .keyDown || event.type == .keyUp) && event.keyCode == 53
-        if isEscape, !(firstResponder is NSText) {
-            onEscapeKey(event)
+        if isEscape {
+            if event.type == .keyDown, !event.isARepeat { onHide() }
         } else {
             super.sendEvent(event)
         }

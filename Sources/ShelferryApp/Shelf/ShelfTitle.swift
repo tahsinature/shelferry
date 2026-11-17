@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The shelf's name. Rename it from the ⋯ menu: Return saves and Esc cancels.
+/// The shelf's name. Rename it from the ⋯ menu: Return saves; Esc hides the shelf.
 /// Otherwise it lets clicks through, so dragging it moves the shelf.
 /// Names are kept short enough to fit; typing past the limit shakes the field.
 struct ShelfTitle: View {

@@ -31,9 +31,9 @@ struct ShelfFeatureTests {
         }
         await store.send(.arm(.clear)) { $0.armed = .clear }
         await clock.advance(by: .seconds(3))
-        await store.send(.arm(.delete)) { $0.armed = .delete }
+        await store.send(.arm(.clear))
         await clock.advance(by: .seconds(3))
-        #expect(store.state.armed == .delete)
+        #expect(store.state.armed == .clear)
         await clock.advance(by: .seconds(1))
         await store.receive(.disarm) { $0.armed = nil }
         await store.finish()

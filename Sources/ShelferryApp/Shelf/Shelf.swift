@@ -39,11 +39,7 @@ final class Shelf: Identifiable {
     }
     /// The shelf's panel has keyboard focus.
     var isFocused = false
-    /// Esc is being held down; the shelf is deleted if it's held long enough.
-    var isHoldingToDelete = false
-    /// The shelf is on its way off screen.
-    var leaving: ShelfLeaving?
-    /// Clear or Delete was asked for and is waiting for a second click, since it deletes copies.
+    /// Clear was asked for and is waiting for a second click, since it deletes copies.
     var armed: ShelfAction? { store.armed }
     /// Something is being dragged over the shelf.
     var dropTarget: ShelfDropTarget?
@@ -328,11 +324,6 @@ enum ShelfAddMode {
     case original
     /// Shelferry's own copy; the original never moves.
     case copy
-}
-
-/// How a shelf goes away: hidden shelves can come back, closed ones are gone.
-enum ShelfLeaving {
-    case hiding, closing
 }
 
 /// What a shelf's buttons do to all of its items.

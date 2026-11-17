@@ -3,11 +3,10 @@ import AppKit
 import SwiftUI
 
 /// The shelf's top bar, the same in every view: the name (drag it to move the shelf),
-/// Stack or List, the ⋯ menu, and Hide. Holding ⌥ turns Hide into Delete.
+/// Stack or List, the ⋯ menu, and a permanent Delete button.
 /// An empty shelf leaves out what needs items: the view switch and the item commands.
 struct ShelfHeader: View {
     let shelf: Shelf
-    let onHide: () -> Void
     let onDelete: () -> Void
     let onClear: () -> Void
 
@@ -27,7 +26,7 @@ struct ShelfHeader: View {
             if !shelf.isEmpty { ShelfViewSwitch(shelf: shelf).disabled(shelf.isShowingConversion) }
             ShelfMoreMenu(shelf: shelf, onRename: { isRenaming = true }, onClear: onClear, onDelete: onDelete)
                 .disabled(shelf.isShowingConversion)
-            ShelfHideButton(shelf: shelf, onHide: onHide, onDelete: onDelete)
+            ShelfDeleteButton(onDelete: onDelete)
         }
         .padding(.trailing, 12)
         .frame(height: Self.height)
@@ -74,6 +73,7 @@ private struct ShelfMoreMenu: View {
     var body: some View {
         Menu {
             Button("Shelf Settings…", action: shelf.settingsWindow.show)
+                .keyboardShortcut(",", modifiers: [.command, .shift])
             if shelf.connectionSettings.isConnected {
                 Button("Refresh Now", action: shelf.connection.refresh).disabled(shelf.connection.isRefreshing)
                 Button(shelf.connectionSettings.paused ? "Resume" : "Pause", action: shelf.connection.togglePause)
@@ -105,80 +105,6 @@ private struct ShelfMoreMenu: View {
         .fixedSize()
         .help("Shelf actions")
         .accessibilityLabel("Shelf actions")
-    }
-}
-
-/// Hides the shelf and keeps its items. While ⌥ is held it turns red and deletes the shelf instead.
-/// When deleting would throw away copies, it widens to "Delete?" and waits for a second click.
-private struct ShelfHideButton: View {
-    let shelf: Shelf
-    let onHide: () -> Void
-    let onDelete: () -> Void
-
-    @State private var optionKey = ShelfOptionKey()
-
-    var body: some View {
-        let isArmed = shelf.armed == .delete
-        let deletes = optionKey.isDown || isArmed
-        Button(action: deletes ? onDelete : onHide) {
-            HStack(spacing: 4) {
-                Image(systemName: deletes ? "trash" : "minus")
-                    .contentTransition(.symbolEffect(.replace))
-                if isArmed { Text("Delete?").fixedSize() }
-            }
-            .font(.system(size: isArmed ? 10 : 9, weight: .bold))
-            .foregroundStyle(deletes ? Color.white : Color.primary)
-            .padding(.horizontal, isArmed ? 8 : 0)
-            .frame(minWidth: 22, minHeight: 22)
-            .background(deletes ? Color.red : Color.primary.opacity(0.1), in: Capsule())
-            .scaleEffect(deletes && !isArmed ? 1.12 : 1)
-            .contentShape(Capsule())
-        }
-        .buttonStyle(InteractionButtonStyle(radius: 11))
-        .help(help(deletes: deletes, isArmed: isArmed))
-        .accessibilityLabel(deletes ? "Delete shelf" : "Hide shelf")
-        .onHover { inside in if !inside, isArmed { shelf.disarm() } }
-        .animation(.spring(duration: 0.3, bounce: 0.45), value: deletes)
-        .animation(.spring(duration: 0.3, bounce: 0.3), value: isArmed)
-        .onAppear { optionKey.start() }
-        .onDisappear { optionKey.stop() }
-    }
-
-    private func help(deletes: Bool, isArmed: Bool) -> String {
-        if isArmed { return "Click again to delete the shelf. Originals stay where they are." }
-        return deletes ? "Delete the shelf" : "Hide the shelf. Its items are kept. Hold ⌥ to delete it instead."
-    }
-}
-
-/// Whether ⌥ is held, in any app: the shelf rarely has focus while you look at it.
-@MainActor
-@Observable
-final class ShelfOptionKey {
-    private(set) var isDown = false
-    @ObservationIgnored private var monitors: [Any] = []
-
-    func start() {
-        guard monitors.isEmpty else { return }
-        isDown = NSEvent.modifierFlags.contains(.option)
-        // Both monitors run on the main thread.
-        let local = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            MainActor.assumeIsolated { self?.update(event) }
-            return event
-        }
-        let global = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            MainActor.assumeIsolated { self?.update(event) }
-        }
-        monitors = [local, global].compactMap { $0 }
-    }
-
-    func stop() {
-        monitors.forEach(NSEvent.removeMonitor)
-        monitors = []
-        isDown = false
-    }
-
-    private func update(_ event: NSEvent) {
-        isDown = event.modifierFlags.contains(.option)
     }
 }
 

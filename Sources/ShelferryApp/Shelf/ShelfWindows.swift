@@ -53,7 +53,10 @@ final class ShelfWindows {
     }
 
     func hideAll() {
-        library.shelves.forEach(hide)
+        let visible = controllers.values.filter(\.isVisible)
+        let frame = visible.first?.frame
+        library.shelves.forEach { hide($0, showFeedback: false) }
+        if let frame { ShelfActionHUD.show(.hidden, count: visible.count, where: frame) }
     }
 
     /// Makes an empty shelf and shows it, by default with keyboard focus, ready for a drop or ⌘V.
@@ -73,24 +76,32 @@ final class ShelfWindows {
         controller(for: shelf).show(besides: neighbour, focus: focus)
     }
 
-    func hide(_ shelf: Shelf) {
-        controllers[shelf.id]?.hide()
+    func hide(_ shelf: Shelf, showFeedback: Bool = true) {
+        guard let controller = controllers[shelf.id], controller.isVisible else { return }
+        let frame = controller.frame
+        controller.hide()
+        if showFeedback, let frame { ShelfActionHUD.show(.hidden, where: frame) }
     }
 
-    /// Clears the shelf and closes it for good, once it has finished going away.
-    func close(_ shelf: Shelf) {
-        guard let controller = controllers.removeValue(forKey: shelf.id) else { return library.remove(shelf) }
-        controller.hide(.closing) { [library] in library.remove(shelf) }
+    /// Removes the panel and shelf immediately after deletion is confirmed.
+    func close(_ shelf: Shelf, showFeedback: Bool = true) {
+        let controller = controllers.removeValue(forKey: shelf.id)
+        let frame = controller?.frame
+        controller?.hide()
+        library.remove(shelf)
+        if showFeedback, let frame { ShelfActionHUD.show(.deleted, where: frame) }
     }
 
     /// CLI deletion completes before its response is returned.
     func removeImmediately(_ shelf: Shelf) {
-        controllers.removeValue(forKey: shelf.id)?.hide()
-        library.remove(shelf)
+        close(shelf)
     }
 
     func closeAll() {
-        library.shelves.forEach(close)
+        let count = library.shelves.count
+        let frame = controllers.values.first(where: \.isVisible)?.frame
+        library.shelves.forEach { close($0, showFeedback: false) }
+        if let frame { ShelfActionHUD.show(.deleted, count: count, where: frame) }
     }
 
     /// Asks first, since this throws away Shelferry's copies on every shelf.
@@ -110,14 +121,18 @@ final class ShelfWindows {
         if alert.runModal() == .alertFirstButtonReturn { closeAll() }
     }
 
-    /// Shelferry's copies are gone for good once removed, so the first request on a shelf that has
-    /// any only arms the button; asking again does it. Shelves holding only originals act at once.
-    private func request(_ action: ShelfAction, on shelf: Shelf) {
-        guard !shelf.hasCopies || shelf.armed == action else { return shelf.arm(action) }
+    /// Clear keeps its existing second-click confirmation; shelf deletion uses a dialog.
+    private func requestClear(on shelf: Shelf) {
+        guard !shelf.hasCopies || shelf.armed == .clear else { return shelf.arm(.clear) }
         shelf.disarm()
-        switch action {
-        case .clear: shelf.clear()
+        shelf.clear()
+    }
+
+    private func requestDelete(on shelf: Shelf) {
+        switch ShelfDeleteDialog.choose(for: shelf) {
+        case .hide: hide(shelf)
         case .delete: close(shelf)
+        case .cancel: show(shelf, focus: true)
         }
     }
 
@@ -135,7 +150,7 @@ final class ShelfWindows {
         dragShelfID = nil
         Task {
             try? await Task.sleep(for: .milliseconds(400))
-            if let shelf = library.shelves.first(where: { $0.id == id }), shelf.isEmpty { close(shelf) }
+            if let shelf = library.shelves.first(where: { $0.id == id }), shelf.isEmpty { close(shelf, showFeedback: false) }
         }
     }
 
@@ -144,19 +159,16 @@ final class ShelfWindows {
         let controller = ShelfPanelController(shelf: shelf)
         controller.setKeepOnTop(config.keepShelvesOnTop)
         shelf.removeAfterDragOut = config.removeAfterDragOut
-        controller.onHide = { [weak self, weak shelf, weak controller] in
-            guard let self, let shelf else { return }
-            let frame = controller?.frame
-            self.hide(shelf)
-            if let frame { ShelfHiddenHUD.show(where: frame) }
+        controller.onHide = { [weak self, weak shelf] in
+            if let shelf { self?.hide(shelf) }
         }
         controller.onNewShelf = { [weak self] in self?.newShelf() }
         controller.onSettings = { [weak self] in self?.onSettings() }
         controller.onDelete = { [weak self, weak shelf] in
-            if let shelf { self?.request(.delete, on: shelf) }
+            if let shelf { self?.requestDelete(on: shelf) }
         }
         controller.onClear = { [weak self, weak shelf] in
-            if let shelf { self?.request(.clear, on: shelf) }
+            if let shelf { self?.requestClear(on: shelf) }
         }
         controllers[shelf.id] = controller
         return controller
