@@ -1,11 +1,14 @@
 name: Release
 on:
+  push:
+    branches: [master]
   workflow_dispatch:
     inputs:
-      version:
-        description: Semantic version, without v (e.g. 0.1.0)
-        required: true
-        type: string
+      bump:
+        description: Version bump
+        type: choice
+        options: [auto, patch, minor, major]
+        default: auto
 permissions:
   contents: write
 concurrency:
@@ -16,23 +19,34 @@ jobs:
     runs-on: xcode-27
     env:
       DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
-      VERSION: ${{ inputs.version }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
-      - name: Validate version and release target
+        with:
+          fetch-depth: 0
+      - name: Pick the version
+        id: version
+        env:
+          BUMP: ${{ inputs.bump || 'auto' }}
         run: |
           [[ "$GITHUB_REF" == refs/heads/master ]]
-          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          if gh release view "v$VERSION" >/dev/null 2>&1; then
+          version="$(bash scripts/next-version.sh "$BUMP")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          if [[ -z "$version" ]]; then
+            echo "No new commits since the last release."
+          elif gh release view "v$version" >/dev/null 2>&1; then
             echo "Release already exists"; exit 1
           fi
       - uses: actions/cache@v4
+        if: steps.version.outputs.version != ''
         with:
           path: .build
           key: swift-release-${{ runner.os }}-${{ hashFiles('Package.resolved', 'Package.swift') }}
       - run: swift test
+        if: steps.version.outputs.version != ''
       - name: Require the update signing key
+        if: steps.version.outputs.version != ''
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
@@ -43,6 +57,7 @@ jobs:
 
       # Keep the application signing identity stable across updates.
       - name: Load the signing certificate
+        if: steps.version.outputs.version != ''
         id: signing
         env:
           CERT_P12: ${{ secrets.SIGNING_CERT_P12 }}
@@ -68,6 +83,7 @@ jobs:
           echo "identity=Shelferry Release Signing" >> "$GITHUB_OUTPUT"
 
       - name: Build universal app and CLI
+        if: steps.version.outputs.version != ''
         env:
           ARCHS: arm64 x86_64
           BUILD_NUMBER: ${{ github.run_number }}
@@ -75,7 +91,9 @@ jobs:
           SIGN_ID: ${{ steps.signing.outputs.identity }}
         run: ./scripts/build.sh
       - run: python3 scripts/integration-test.py
+        if: steps.version.outputs.version != ''
       - name: Package Homebrew cask
+        if: steps.version.outputs.version != ''
         run: |
           python3 scripts/render-cask.py "$VERSION" build/Shelferry.zip build/shelferry.rb
           ruby -c build/shelferry.rb
@@ -84,6 +102,7 @@ jobs:
             xcrun lipo build/Shelferry.app/Contents/Helpers/shelferry -verify_arch "$arch"
           done
       - name: Generate signed update feed
+        if: steps.version.outputs.version != ''
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
@@ -98,6 +117,7 @@ jobs:
             security delete-keychain "$RUNNER_TEMP/signing.keychain-db"
           fi
       - name: Publish
+        if: steps.version.outputs.version != ''
         run: |
           cat > build/release-notes.md <<'NOTES'
           Native floating shelves, a standalone CLI, and a Yazi plugin.

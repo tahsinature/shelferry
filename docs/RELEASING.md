@@ -1,6 +1,14 @@
 # Releases
 
-Push changes to `master`; CI builds and tests them. To publish, open GitHub Actions → Release → Run workflow on `master` and enter a version such as `0.1.1`. Existing versions cannot be overwritten.
+Every push to `master` publishes a release when there are new commits, following
+Tooki’s release flow. Commit messages choose the next version: `feat:` bumps minor,
+`feat!:` or a `BREAKING CHANGE:` body line bumps major, and other commits bump patch.
+The largest bump wins. Documentation-only pushes also publish a patch release.
+
+To release manually or override the bump, run GitHub Actions → Release on `master`
+and choose `auto`, `patch`, `minor` or `major`. Auto skips when there are no new
+commits since the last release. Existing versions cannot be overwritten.
+Preview the version locally with `bash scripts/next-version.sh` after fetching tags.
 
 The workflow runs tests, builds the universal app/CLI, runs isolated integration checks, verifies both architectures and the bundle signature, creates a ZIP and SHA-256, and publishes a GitHub release. Its generated `shelferry.rb` pins that exact archive.
 
