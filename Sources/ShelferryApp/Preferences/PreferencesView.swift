@@ -87,7 +87,7 @@ struct PreferencesView: View {
                 Link(destination: URL(string: "https://github.com/tahsinature/shelferry")!) { Label("Source code", systemImage: "chevron.left.forwardslash.chevron.right") }
                 Link(destination: URL(string: "https://github.com/tahsinature/shelferry/issues")!) { Label("Report an issue", systemImage: "bubble.left.and.exclamationmark.bubble.right") }
             }
-            Text("© 2026 Tahsin · GPL-3.0\nDerived from Tooki’s native Shelf.").font(.caption).foregroundStyle(.secondary)
+            Text("© 2026 Tahsin · MIT License").font(.caption).foregroundStyle(.secondary)
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
 

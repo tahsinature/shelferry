@@ -1,8 +1,12 @@
+<p align="center">
+  <img src="Resources/Logo.svg" alt="Shelferry Paper Stack logo" width="96" height="96">
+</p>
+
 # Shelferry
 
 Native floating file shelves for macOS, with a CLI for launchers and a Yazi plugin.
 
-Carry files between apps: drop them onto a shelf, keep links to originals or independent copies, then drag them out when you need them. Shelferry retains the AppKit and SwiftUI Shelf implementation from Tooki, including Quick Look, multiple shelves, Shelf Manager, and image conversion.
+Carry files between apps: drop them onto a shelf, keep links to originals or independent copies, then drag them out when you need them. Shelferry includes Quick Look, multiple floating shelves, and image conversion.
 
 ## Install
 
@@ -23,7 +27,6 @@ shelferry new --name Work
 shelferry add --shelf Work --copy -- ~/Downloads/report.pdf
 shelferry list --json
 shelferry toggle
-shelferry manager
 shelferry settings
 ```
 
@@ -65,4 +68,4 @@ open build/Shelferry.app
 
 ## License
 
-[GPL-3.0](LICENSE). Extracted from Tooki’s native Swift Shelf. Dependency licenses are included in [ThirdPartyNotices.txt](Resources/ThirdPartyNotices.txt).
+[MIT](LICENSE) © 2026 Tahsin. Third-party dependencies retain their own licenses, included in [ThirdPartyNotices.txt](Resources/ThirdPartyNotices.txt).

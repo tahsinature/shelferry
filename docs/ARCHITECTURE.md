@@ -1,6 +1,6 @@
 # Architecture
 
-Shelferry is extracted from Tooki's original Swift Shelf, retaining its AppKit panels, SwiftUI content, drag/drop, Quick Look, and image conversion. The original GPL license accompanies the code.
+Shelferry is extracted from Tooki's original Swift Shelf, retaining its AppKit panels, SwiftUI content, drag/drop, Quick Look, and image conversion. Shelferry is independently distributed under the MIT License; third-party dependency licenses remain in ThirdPartyNotices.txt.
 
 - `ShelferryApp`: single owner of shelf state and disk writes. Native `ShelfPanel` instances host SwiftUI views. `ShelfLibrary` owns shelves; `ShelfWindows` owns panels.
 - `ShelfFeature`: existing TCA reducers for selection, confirmation and conversion.

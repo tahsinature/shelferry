@@ -27,6 +27,7 @@ if [[ -f Resources/AppIcon.icns ]]; then cp Resources/AppIcon.icns "$app/Content
 for resource in "$bin"/*.bundle; do
   [[ -d "$resource" ]] && ditto "$resource" "$app/Contents/Resources/$(basename "$resource")"
 done
+cp LICENSE "$app/Contents/Resources/"
 cp Resources/ThirdPartyNotices.txt "$app/Contents/Resources/"
 sdk="$(bash scripts/select-macos-sdk.sh)"
 sdk_version="$(/usr/libexec/PlistBuddy -c 'Print :Version' "$sdk/SDKSettings.plist")"

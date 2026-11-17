@@ -29,7 +29,6 @@ desc = "Get from Shelferry"
 - `add`: choose a shelf or create one, then choose independent copies or links to originals.
 - `get`: select shelf items, choose copy or cut, and press `p` in Yazi’s destination folder.
 - `toggle`: show or hide all shelves.
-- `manager`: open or hide Shelf Manager.
 
 `fzf` is optional. Without it, shelf selection uses a paginated key menu, and retrieving items offers an explicit select-all choice. With `fzf`, use Tab for multiple selections and Ctrl+A to select all.
 
@@ -37,4 +36,4 @@ The CLI must be in PATH. Set `SHELFERRY_BIN` to its full path if needed. The plu
 
 Existing Tooki Yazi bindings are left untouched. Change your bindings when you are ready to switch.
 
-Requires macOS 14+, Shelferry, and a Yazi version supporting the current plugin API. Licensed under [GPL-3.0](LICENSE).
+Requires macOS 14+, Shelferry, and a Yazi version supporting the current plugin API. Licensed under [MIT](LICENSE).
