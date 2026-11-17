@@ -1,0 +1,28 @@
+name: CI
+on:
+  push:
+    branches: [master]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: xcode-27
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: .build
+          key: swift-debug-${{ runner.os }}-${{ hashFiles('Package.resolved', 'Package.swift') }}
+      - run: swift test
+      - run: CONFIGURATION=debug ./scripts/build.sh
+      - run: python3 scripts/integration-test.py
+      - name: Validate plugin syntax
+        run: |
+          brew list lua >/dev/null 2>&1 || brew install lua
+          luac -p shelferry.yazi/main.lua
