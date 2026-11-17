@@ -26,6 +26,8 @@ if raw == ["--version"] {
     print(bundle?.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development")
     exit(0)
 }
+let wantsJSON = raw.prefix { $0 != "--" }.contains("--json")
+var wroteJSON = false
 do {
     let arguments = try Arguments(raw)
     let fd: Int32
@@ -34,8 +36,8 @@ do {
         let launcher = Process()
         launcher.executableURL = URL(fileURLWithPath: "/usr/bin/open")
         if let app = ProcessInfo.processInfo.environment["SHELFERRY_APP"] {
-            launcher.arguments = ["-g", app]
-        } else { launcher.arguments = ["-g", "-b", "us.tahsin.shelferry"] }
+            launcher.arguments = ["-g", app, "--args", "--background"]
+        } else { launcher.arguments = ["-g", "-b", "us.tahsin.shelferry", "--args", "--background"] }
         launcher.standardOutput = FileHandle.nullDevice
         try launcher.run(); launcher.waitUntilExit()
         guard launcher.terminationStatus == 0 else { throw ServiceError("Install Shelferry.app in Applications, or set SHELFERRY_APP.") }
@@ -53,6 +55,7 @@ do {
     if arguments.json {
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         FileHandle.standardOutput.write(try encoder.encode(response)); print("")
+        wroteJSON = true
     }
     if let error = response.error { throw ServiceError(error) }
     if !arguments.json {
@@ -62,5 +65,8 @@ do {
         }
     }
 } catch {
+    if wantsJSON && !wroteJSON, let data = try? JSONEncoder().encode(Response(error: error.localizedDescription)) {
+        FileHandle.standardOutput.write(data); print("")
+    }
     FileHandle.standardError.write(Data("shelferry: \(error.localizedDescription)\n".utf8)); exit(1)
 }

@@ -14,7 +14,7 @@ with tempfile.TemporaryDirectory(prefix="shelferry-test-", dir="/tmp") as tempor
     directory = Path(temporary)
     env = dict(os.environ, SHELFERRY_DATA_DIR=str(directory / "data"), SHELFERRY_SOCKET_DIR=str(directory / "ipc"))
     def start():
-        process = subprocess.Popen([str(app)], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        process = subprocess.Popen([str(app), "--background"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         for _ in range(150):
             if process.poll() is not None:
                 raise AssertionError(process.stderr.read().decode())
@@ -29,6 +29,7 @@ with tempfile.TemporaryDirectory(prefix="shelferry-test-", dir="/tmp") as tempor
         return json.loads(result.stdout) if result.stdout else None
     process = start()
     try:
+        assert run("unknown", success=False)["error"]
         assert run("list")["shelves"] == []
         shelf = run("new", "--name", "Test\tShelf")["shelves"][0]
         original = directory / 'space 日本語\nfile.txt'; original.write_text("original")
@@ -42,7 +43,7 @@ with tempfile.TemporaryDirectory(prefix="shelferry-test-", dir="/tmp") as tempor
         assert len(run("items", "--shelf", shelf["id"])["items"]) == 2
         run("rename", "--shelf", shelf["id"], "--name", "Renamed")
         run("toggle"); run("toggle"); run("manager"); run("manager")
-        second = subprocess.run([str(app)], env=env, capture_output=True, timeout=10)
+        second = subprocess.run([str(app), "--background"], env=env, capture_output=True, timeout=10)
         assert second.returncode == 0
         assert len(run("items", "--shelf", shelf["id"])["items"]) == 2
         process.terminate(); process.wait(timeout=10)

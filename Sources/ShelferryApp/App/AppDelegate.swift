@@ -27,7 +27,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settings.shiftDragOpens = UserDefaults.standard.object(forKey: "shiftDragOpens") as? Bool ?? true
         settings.removeAfterDragOut = UserDefaults.standard.bool(forKey: "removeAfterDragOut")
         windows.apply(settings)
-        do { try windows.start() } catch {
+        let background = CommandLine.arguments.contains("--background")
+        do { try windows.start(showWindows: !background) } catch {
             let alert = NSAlert()
             alert.messageText = "Shelferry could not load its saved shelves"
             alert.informativeText = error.localizedDescription + " Your saved data has not been replaced."
@@ -38,7 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dragWatcher.onDragEnded = { [weak self] in self?.windows.dragEnded() }
         if settings.shiftDragOpens { dragWatcher.start() }
         buildMenu()
-        if library.isEmpty && ProcessInfo.processInfo.environment["SHELFERRY_DATA_DIR"] == nil { windows.newShelf(focus: false) }
+        if library.isEmpty && !background { windows.newShelf(focus: false) }
     }
 
     private func buildMenu() {

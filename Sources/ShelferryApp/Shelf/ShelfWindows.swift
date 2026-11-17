@@ -2,7 +2,7 @@ import AppKit
 import ShelferryCore
 
 /// One floating panel per shelf. Decides which shelves are shown, makes new ones and closes
-/// them, and runs shelf commands from hotkeys, the menu and `shelferry://` links.
+/// them, and runs shelf commands from the menu and CLI.
 @MainActor
 final class ShelfWindows {
     let library: ShelfLibrary
@@ -17,9 +17,9 @@ final class ShelfWindows {
     }
 
     /// Brings back the saved shelves.
-    func start() throws {
+    func start(showWindows: Bool = true) throws {
         try library.load()
-        if isEnabled { showAll() }
+        if isEnabled && showWindows { showAll() }
     }
 
     func apply(_ config: ShelfConfig) {
