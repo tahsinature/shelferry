@@ -2,9 +2,9 @@ import AppKit
 import SwiftUI
 
 enum PreferencesPane: String, CaseIterable {
-    case general = "General", hotkeys = "Hotkeys", about = "About"
+    case general = "General", hotkeys = "Hotkeys", updates = "Updates", about = "About"
     var symbol: String {
-        switch self { case .general: "slider.horizontal.3"; case .hotkeys: "keyboard"; case .about: "info.circle" }
+        switch self { case .general: "slider.horizontal.3"; case .hotkeys: "keyboard"; case .updates: "arrow.down.circle"; case .about: "info.circle" }
     }
     var identifier: NSToolbarItem.Identifier { .init(rawValue) }
 }
@@ -12,15 +12,16 @@ enum PreferencesPane: String, CaseIterable {
 @MainActor
 final class PreferencesWindow: NSObject, NSToolbarDelegate {
     private let store: PreferencesStore
+    private let updater: Updater
     private let hotkeys: GlobalHotkeys
     private var window: NSWindow?
     private var hosting: NSHostingController<PreferencesView>?
 
-    init(store: PreferencesStore, hotkeys: GlobalHotkeys) { self.store = store; self.hotkeys = hotkeys }
+    init(store: PreferencesStore, hotkeys: GlobalHotkeys, updater: Updater) { self.store = store; self.hotkeys = hotkeys; self.updater = updater }
 
     func show(_ pane: PreferencesPane = .general) {
         if window == nil {
-            let host = NSHostingController(rootView: PreferencesView(pane: pane, store: store, hotkeys: hotkeys))
+            let host = NSHostingController(rootView: PreferencesView(pane: pane, store: store, hotkeys: hotkeys, updater: updater))
             let window = NSWindow(contentViewController: host)
             window.styleMask = [.titled, .closable, .miniaturizable]
             window.isReleasedWhenClosed = false
@@ -41,7 +42,7 @@ final class PreferencesWindow: NSObject, NSToolbarDelegate {
     }
 
     private func select(_ pane: PreferencesPane) {
-        hosting?.rootView = PreferencesView(pane: pane, store: store, hotkeys: hotkeys)
+        hosting?.rootView = PreferencesView(pane: pane, store: store, hotkeys: hotkeys, updater: updater)
         window?.toolbar?.selectedItemIdentifier = pane.identifier
         window?.title = pane.rawValue
     }

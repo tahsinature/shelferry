@@ -9,7 +9,7 @@ case "$build_channel" in
   dev|prod) ;;
   *) printf 'BUILD_CHANNEL must be dev or prod.\n' >&2; exit 1 ;;
 esac
-args=()
+args=(-Xlinker -rpath -Xlinker @executable_path/../Frameworks)
 for arch in $architecture; do args+=(--arch "$arch"); done
 bash scripts/swift.sh build -c "$configuration" "${args[@]}"
 bin="$(bash scripts/swift.sh build -c "$configuration" "${args[@]}" --show-bin-path)"
@@ -33,6 +33,7 @@ sdk="$(bash scripts/select-macos-sdk.sh)"
 sdk_version="$(/usr/libexec/PlistBuddy -c 'Print :Version' "$sdk/SDKSettings.plist")"
 # Record the SDK actually used so macOS supplies its current native appearance.
 vtool -set-build-version macos 14.0 "$sdk_version" -replace -output "$app/Contents/MacOS/Shelferry" "$app/Contents/MacOS/Shelferry"
+bash scripts/embed-sparkle.sh "$bin/Sparkle.framework" "$app" "${SIGN_ID:--}"
 codesign --force --sign "${SIGN_ID:--}" "$app/Contents/Helpers/shelferry"
 codesign --force --sign "${SIGN_ID:--}" "$app"
 codesign --verify --deep --strict "$app"

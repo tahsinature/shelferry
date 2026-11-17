@@ -7,17 +7,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let library = ShelfLibrary()
     lazy var windows = ShelfWindows(library: library)
     lazy var handler = CommandHandler(windows: windows)
+    private let updater = Updater()
+    private var activeRequests = 0
     private let server = CommandServer()
     private let dragWatcher = ShelfDragWatcher()
     private var statusItem: NSStatusItem?
     private lazy var preferences = PreferencesStore()
     private lazy var hotkeys = GlobalHotkeys()
-    private lazy var preferencesWindow = PreferencesWindow(store: preferences, hotkeys: hotkeys)
+    private lazy var preferencesWindow = PreferencesWindow(store: preferences, hotkeys: hotkeys, updater: updater)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         do {
             try server.start { [weak self] request in
                 guard let self else { return Response(error: "Shelferry is shutting down.") }
+                activeRequests += 1
+                defer { activeRequests -= 1 }
                 return await handler.handle(request)
             }
         } catch {
@@ -44,6 +48,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         dragWatcher.onShiftDrag = { [weak self] in self?.windows.showForDrag() }
         dragWatcher.onDragEnded = { [weak self] in self?.windows.dragEnded() }
+        updater.hasPendingWork = { [weak self] in
+            guard let self else { return false }
+            return activeRequests > 0 || library.shelves.contains {
+                !$0.copyingIDs.isEmpty || $0.imageConversion != nil
+            }
+        }
+        updater.start()
         applyPreferences(preferences.value)
         if library.isEmpty && !background { windows.newShelf(focus: false) }
     }
@@ -68,6 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item("Remove Items After Dragging Out", #selector(toggleCleanup)).state = preferences.value.removeAfterDragOut ? .on : .off
         menu.addItem(.separator())
         _ = item("Settings…", #selector(showPreferences), key: ",")
+        if updater.isEnabled { _ = item("Check for Updates…", #selector(checkForUpdates)) }
         _ = item("About Shelferry", #selector(about))
         _ = item("Quit Shelferry", #selector(quit), key: "q")
         statusItem?.menu = menu
@@ -87,6 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleCleanup() { preferences.update { $0.removeAfterDragOut.toggle() } }
     @objc private func showPreferences() { preferencesWindow.show() }
     @objc private func about() { preferencesWindow.show(.about) }
+    @objc private func checkForUpdates() { updater.check() }
     @objc private func quit() { NSApp.terminate(nil) }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         windows.showAll(); return false

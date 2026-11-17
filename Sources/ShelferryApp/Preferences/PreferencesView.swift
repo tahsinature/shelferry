@@ -6,12 +6,14 @@ struct PreferencesView: View {
     let pane: PreferencesPane
     let store: PreferencesStore
     let hotkeys: GlobalHotkeys
+    let updater: Updater
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             switch pane {
             case .general: general
             case .hotkeys: shortcuts
+            case .updates: UpdateSettingsView(updater: updater)
             case .about: about
             }
             if let error = store.error ?? hotkeys.error {
