@@ -22,6 +22,7 @@ cp Resources/Info.plist "$app/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $version" "$app/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${BUILD_NUMBER:-1}" "$app/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :ShelferryBuildChannel $build_channel" "$app/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Add :ShelferryBuildConfiguration string $configuration" "$app/Contents/Info.plist"
 if [[ -f Resources/AppIcon.icns ]]; then cp Resources/AppIcon.icns "$app/Contents/Resources/"; fi
 # SwiftPM app resource accessors look in Bundle.main.resourceURL.
 for resource in "$bin"/*.bundle; do

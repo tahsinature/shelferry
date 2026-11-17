@@ -28,6 +28,7 @@ struct PreferencesView: View {
     private var general: some View {
         Form {
             Section {
+                Toggle("Keep shelves on top", isOn: binding(\.keepShelvesOnTop))
                 Toggle("Show shelves when Shift-dragging", isOn: binding(\.shiftDragOpens))
                 Toggle("Remove items after dragging them out", isOn: binding(\.removeAfterDragOut))
                 Text("Cancelled drags keep their items. Original files remain at their destination.")

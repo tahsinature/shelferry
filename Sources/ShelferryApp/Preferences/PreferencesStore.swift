@@ -4,14 +4,16 @@ import ShelferryCore
 import ShelferryProtocol
 
 struct Preferences: Codable, Equatable {
+    var keepShelvesOnTop = true
     var shiftDragOpens = true
     var removeAfterDragOut = false
     var shortcuts: [String: String] = [:]
 
     init() {}
-    enum CodingKeys: String, CodingKey { case shiftDragOpens, removeAfterDragOut, shortcuts }
+    enum CodingKeys: String, CodingKey { case keepShelvesOnTop, shiftDragOpens, removeAfterDragOut, shortcuts }
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
+        keepShelvesOnTop = try values.decodeIfPresent(Bool.self, forKey: .keepShelvesOnTop) ?? true
         shiftDragOpens = try values.decodeIfPresent(Bool.self, forKey: .shiftDragOpens) ?? true
         removeAfterDragOut = try values.decodeIfPresent(Bool.self, forKey: .removeAfterDragOut) ?? false
         shortcuts = try values.decodeIfPresent([String: String].self, forKey: .shortcuts) ?? [:]

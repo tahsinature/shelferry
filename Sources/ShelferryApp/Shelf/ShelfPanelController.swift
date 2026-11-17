@@ -13,6 +13,7 @@ final class ShelfPanelController {
     var onClear: () -> Void = {}
     /// Run by ⌘N.
     var onNewShelf: () -> Void = {}
+    var onSettings: () -> Void = {}
     private lazy var panel = makePanel()
     private var hasBeenPlaced = false
     /// Tells a size change from folding or unfolding apart from others. The details page
@@ -31,6 +32,11 @@ final class ShelfPanelController {
     var isVisible: Bool { hasBeenPlaced && panel.isVisible }
     /// Where the panel is on screen, once it has been shown.
     var frame: CGRect? { hasBeenPlaced ? panel.frame : nil }
+
+    func setKeepOnTop(_ enabled: Bool) {
+        panel.isFloatingPanel = enabled
+        panel.level = enabled ? .floating : .normal
+    }
 
     /// - Parameters:
     ///   - nearCursor: Places the shelf next to the pointer, for a drag that's on its way.
@@ -149,6 +155,11 @@ final class ShelfPanelController {
     }
 
     private func handleKey(_ event: NSEvent) -> Bool {
+        let shortcutModifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
+        if shortcutModifiers == .command, event.charactersIgnoringModifiers == "," {
+            if !event.isARepeat { onSettings() }
+            return true
+        }
         if shelf.isShowingConversion, let model = shelf.imageConversion {
             if event.keyCode == 49 || (event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers == "y") {
                 model.quickLook()

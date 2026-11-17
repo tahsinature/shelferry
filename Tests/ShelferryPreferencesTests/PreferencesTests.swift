@@ -6,9 +6,21 @@ import Testing
 struct PreferencesTests {
     @Test func partialConfigUsesDefaults() throws {
         let value = try JSONDecoder().decode(Preferences.self, from: Data("{}".utf8))
+        #expect(value.keepShelvesOnTop)
         #expect(value.shiftDragOpens)
         #expect(!value.removeAfterDragOut)
         #expect(value.shortcuts.isEmpty)
+    }
+
+    @Test func keepShelvesOnTopPersistsWhenDisabled() throws {
+        let folder = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let file = folder.appending(path: "config.json")
+        let store = PreferencesStore(configFile: file)
+        store.update { $0.keepShelvesOnTop = false }
+        #expect(store.error == nil)
+        let reloaded = PreferencesStore(configFile: file)
+        #expect(!reloaded.value.keepShelvesOnTop)
     }
 
     @Test func retiredManagerHotkeyDoesNotInvalidateExistingSettings() throws {

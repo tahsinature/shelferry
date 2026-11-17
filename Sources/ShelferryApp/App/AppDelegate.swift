@@ -30,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.terminate(nil); return
         }
         handler.onSettings = { [weak self] in self?.preferencesWindow.show() }
+        windows.onSettings = { [weak self] in self?.preferencesWindow.show() }
         preferences.onChange = { [weak self] value in self?.applyPreferences(value) }
         hotkeys.onAction = { [weak self] action in
             guard let self else { return }
@@ -88,6 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggle() { windows.toggleAll() }
     private func applyPreferences(_ value: Preferences) {
         var config = ShelfConfig()
+        config.keepShelvesOnTop = value.keepShelvesOnTop
         config.shiftDragOpens = value.shiftDragOpens
         config.removeAfterDragOut = value.removeAfterDragOut
         windows.apply(config)

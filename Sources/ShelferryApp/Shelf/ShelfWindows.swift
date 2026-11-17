@@ -6,6 +6,7 @@ import ShelferryCore
 @MainActor
 final class ShelfWindows {
     let library: ShelfLibrary
+    var onSettings: () -> Void = {}
     private(set) var isEnabled = true
     private var config = ShelfConfig()
     private var controllers: [Shelf.ID: ShelfPanelController] = [:]
@@ -25,6 +26,7 @@ final class ShelfWindows {
     func apply(_ config: ShelfConfig) {
         self.config = config
         isEnabled = config.enabled
+        controllers.values.forEach { $0.setKeepOnTop(config.keepShelvesOnTop) }
         library.shelves.forEach { $0.removeAfterDragOut = config.removeAfterDragOut }
         if !isEnabled { hideAll() }
     }
@@ -140,6 +142,7 @@ final class ShelfWindows {
     private func controller(for shelf: Shelf) -> ShelfPanelController {
         if let existing = controllers[shelf.id] { return existing }
         let controller = ShelfPanelController(shelf: shelf)
+        controller.setKeepOnTop(config.keepShelvesOnTop)
         shelf.removeAfterDragOut = config.removeAfterDragOut
         controller.onHide = { [weak self, weak shelf, weak controller] in
             guard let self, let shelf else { return }
@@ -148,6 +151,7 @@ final class ShelfWindows {
             if let frame { ShelfHiddenHUD.show(where: frame) }
         }
         controller.onNewShelf = { [weak self] in self?.newShelf() }
+        controller.onSettings = { [weak self] in self?.onSettings() }
         controller.onDelete = { [weak self, weak shelf] in
             if let shelf { self?.request(.delete, on: shelf) }
         }
