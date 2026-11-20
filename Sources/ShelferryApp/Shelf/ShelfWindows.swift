@@ -83,7 +83,7 @@ final class ShelfWindows {
         if showFeedback, let frame { ShelfActionHUD.show(.hidden, where: frame) }
     }
 
-    /// Removes the panel and shelf immediately after deletion is confirmed.
+    /// Removes the panel and shelf immediately, with feedback by default.
     func close(_ shelf: Shelf, showFeedback: Bool = true) {
         let controller = controllers.removeValue(forKey: shelf.id)
         let frame = controller?.frame
@@ -129,6 +129,10 @@ final class ShelfWindows {
     }
 
     private func requestDelete(on shelf: Shelf) {
+        if NSEvent.modifierFlags.contains(.option) {
+            close(shelf)
+            return
+        }
         switch ShelfDeleteDialog.choose(for: shelf) {
         case .hide: hide(shelf)
         case .delete: close(shelf)
