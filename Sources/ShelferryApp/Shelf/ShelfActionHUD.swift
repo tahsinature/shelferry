@@ -54,7 +54,7 @@ enum ShelfActionHUD {
         self.panel = panel
         panel.orderFrontRegardless()
         dismissal = Task {
-            try? await Task.sleep(for: .seconds(1.8))
+            try? await Task.sleep(for: .seconds(0.9))
             guard !Task.isCancelled else { return }
             if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
                 await NSAnimationContext.runAnimationGroup { context in
