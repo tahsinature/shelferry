@@ -92,6 +92,7 @@ private struct ShelfMoreMenu: View {
             Divider()
             if shelf.items.contains(where: shelf.canEdit) { Button("Clear", action: onClear) }
             Button("Delete Shelf", role: .destructive, action: onDelete)
+                .keyboardShortcut(.delete, modifiers: .command)
         } label: {
             Image(systemName: "ellipsis")
                 .font(.system(size: 9, weight: .bold))

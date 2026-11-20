@@ -69,6 +69,7 @@ final class ShelfPanelController {
         shelf.onQuickLook = { [weak panel] urls in panel?.quickLook.toggle(urls) }
         shelf.onCloseQuickLook = { [weak panel] in panel?.quickLook.close() }
         panel.onHide = { [weak self] in self?.onHide() }
+        panel.onDelete = { [weak self] in self?.onDelete() }
         panel.onFocusChange = { [weak self] focused in
             self?.shelf.isFocused = focused
         }

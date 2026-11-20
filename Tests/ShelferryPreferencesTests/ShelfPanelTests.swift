@@ -5,6 +5,42 @@ import Testing
 
 @MainActor
 struct ShelfPanelTests {
+    @Test(arguments: [UInt16(51), 53, 117], [false, true])
+    func commandDeleteAndEscapeRequestDeletionWithoutChangingShelf(keyCode: UInt16, expanded: Bool) throws {
+        _ = NSApplication.shared
+        let shelf = Shelf(name: "Delete shortcut test")
+        let item = ShelfItem(fileURL: URL(fileURLWithPath: "/tmp/shelferry-shortcut-fixture.txt"))
+        shelf.add([item])
+        shelf.selection = [item.id]
+        shelf.isExpanded = expanded
+        let panel = ShelfPanel(shelf: shelf, content: EmptyView())
+        var deletions = 0
+        var hides = 0
+        panel.onDelete = { deletions += 1 }
+        panel.onHide = { hides += 1 }
+
+        func key(_ type: NSEvent.EventType, repeated: Bool = false) throws -> NSEvent {
+            try #require(NSEvent.keyEvent(with: type, location: .zero, modifierFlags: .command, timestamp: 0,
+                                         windowNumber: panel.windowNumber, context: nil, characters: "",
+                                         charactersIgnoringModifiers: "", isARepeat: repeated, keyCode: keyCode))
+        }
+
+        panel.sendEvent(try key(.keyDown))
+        #expect(deletions == 1)
+        panel.sendEvent(try key(.keyDown, repeated: true))
+        panel.sendEvent(try key(.keyUp))
+        #expect(deletions == 1)
+
+        #expect(panel.performKeyEquivalent(with: try key(.keyDown)))
+        #expect(deletions == 2)
+        #expect(panel.performKeyEquivalent(with: try key(.keyDown, repeated: true)))
+        #expect(deletions == 2)
+        #expect(hides == 0)
+        #expect(shelf.isExpanded == expanded)
+        #expect(shelf.items.map(\.id) == [item.id])
+        #expect(shelf.selection == [item.id])
+    }
+
     @Test(arguments: [false, true])
     func escapeFoldsBeforeHiding(showDetails: Bool) throws {
         _ = NSApplication.shared

@@ -21,7 +21,7 @@ struct ShelfDeleteButton: View {
         }
         .buttonStyle(InteractionButtonStyle(radius: 11))
         .accessibilityLabel("Delete shelf")
-        .help(isOptionPressed ? "Delete immediately" : "Delete shelf… (Option-click to delete immediately)")
+        .help(isOptionPressed ? "Delete immediately" : "Delete shelf… (⌘⌫ or ⌘Esc)\nOption-click to delete immediately.")
         .onHover(perform: updateHover)
         .onDisappear(perform: stopMonitoringModifiers)
     }

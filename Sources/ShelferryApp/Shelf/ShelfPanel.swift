@@ -9,6 +9,7 @@ final class ShelfPanel: NSPanel {
     var onKey: (NSEvent) -> Bool = { _ in false }
     var onFocusChange: (Bool) -> Void = { _ in }
     var onHide: () -> Void = {}
+    var onDelete: () -> Void = {}
     let quickLook = QuickLookPreview()
     private let shelf: Shelf
 
@@ -41,7 +42,9 @@ final class ShelfPanel: NSPanel {
 
     /// Esc folds an expanded shelf first; a separate press then hides it.
     override func sendEvent(_ event: NSEvent) {
-        let isEscape = (event.type == .keyDown || event.type == .keyUp) && event.keyCode == 53
+        if handleDeleteShortcut(event) { return }
+        let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
+        let isEscape = (event.type == .keyDown || event.type == .keyUp) && event.keyCode == 53 && modifiers.isEmpty
         if isEscape {
             if event.type == .keyDown, !event.isARepeat {
                 if shelf.isExpanded && !shelf.isShowingConversion {
@@ -72,7 +75,16 @@ final class ShelfPanel: NSPanel {
     }
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        onKey(event) || super.performKeyEquivalent(with: event)
+        handleDeleteShortcut(event) || onKey(event) || super.performKeyEquivalent(with: event)
+    }
+
+    /// Shelf deletion takes precedence over folding and item deletion, including in text fields.
+    private func handleDeleteShortcut(_ event: NSEvent) -> Bool {
+        let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
+        guard event.type == .keyDown, modifiers == .command,
+              [51, 53, 117].contains(event.keyCode) else { return false }
+        if !event.isARepeat { onDelete() }
+        return true
     }
 
     override func acceptsPreviewPanelControl(_ panel: QLPreviewPanel!) -> Bool { true }
