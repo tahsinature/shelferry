@@ -7,7 +7,7 @@ import ShelferryCore
 @MainActor
 final class ShelfPanelController {
     let shelf: Shelf
-    /// Esc hides the shelf. The trash button opens its deletion dialog.
+    /// Esc hides the shelf once folded. The trash button requests deletion.
     var onHide: () -> Void = {}
     var onDelete: () -> Void = {}
     var onClear: () -> Void = {}

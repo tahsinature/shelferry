@@ -10,8 +10,10 @@ final class ShelfPanel: NSPanel {
     var onFocusChange: (Bool) -> Void = { _ in }
     var onHide: () -> Void = {}
     let quickLook = QuickLookPreview()
+    private let shelf: Shelf
 
     init(shelf: Shelf, content: some View) {
+        self.shelf = shelf
         super.init(
             contentRect: CGRect(x: 0, y: 0, width: 168, height: 168),
             styleMask: [.nonactivatingPanel, .borderless, .fullSizeContentView],
@@ -37,11 +39,19 @@ final class ShelfPanel: NSPanel {
 
     override var canBecomeKey: Bool { true }
 
-    /// Esc always hides this shelf, including while editing or viewing details.
+    /// Esc folds an expanded shelf first; a separate press then hides it.
     override func sendEvent(_ event: NSEvent) {
         let isEscape = (event.type == .keyDown || event.type == .keyUp) && event.keyCode == 53
         if isEscape {
-            if event.type == .keyDown, !event.isARepeat { onHide() }
+            if event.type == .keyDown, !event.isARepeat {
+                if shelf.isExpanded && !shelf.isShowingConversion {
+                    quickLook.close()
+                    shelf.disarm()
+                    shelf.isExpanded = false
+                } else {
+                    onHide()
+                }
+            }
         } else {
             super.sendEvent(event)
         }

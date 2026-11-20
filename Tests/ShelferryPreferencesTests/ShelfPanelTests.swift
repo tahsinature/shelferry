@@ -5,25 +5,29 @@ import Testing
 
 @MainActor
 struct ShelfPanelTests {
-    @Test func escapeHidesOnKeyDownWithoutChangingShelfPresentation() throws {
+    @Test(arguments: [false, true])
+    func escapeFoldsBeforeHiding(showDetails: Bool) throws {
         _ = NSApplication.shared
         let shelf = Shelf(name: "Escape test")
         let item = ShelfItem(fileURL: URL(fileURLWithPath: "/tmp/shelferry-escape-fixture.txt"))
         shelf.add([item])
         shelf.isExpanded = true
-        shelf.showDetail(of: item)
+        if showDetails { shelf.showDetail(of: item) }
         let panel = ShelfPanel(shelf: shelf, content: EmptyView())
         var hidden = 0
         panel.onHide = { hidden += 1 }
 
         panel.sendEvent(try escape(.keyDown, window: panel))
-        #expect(hidden == 1)
-        #expect(shelf.isExpanded)
-        #expect(shelf.isShowingDetail)
+        #expect(hidden == 0)
+        #expect(!shelf.isExpanded)
+        #expect(!shelf.isShowingDetail)
         #expect(shelf.items.count == 1)
 
         panel.sendEvent(try escape(.keyDown, window: panel, repeated: true))
         panel.sendEvent(try escape(.keyUp, window: panel))
+        #expect(hidden == 0)
+
+        panel.sendEvent(try escape(.keyDown, window: panel))
         #expect(hidden == 1)
     }
 
@@ -34,12 +38,14 @@ struct ShelfPanelTests {
         let editor = NSTextView(frame: .zero)
         panel.contentView?.addSubview(editor)
         panel.makeFirstResponder(editor)
+        shelf.isExpanded = true
         shelf.isShowingConversion = true
         var hidden = false
         panel.onHide = { hidden = true }
 
         panel.sendEvent(try escape(.keyDown, window: panel))
         #expect(hidden)
+        #expect(shelf.isExpanded)
         #expect(shelf.isShowingConversion)
     }
 
