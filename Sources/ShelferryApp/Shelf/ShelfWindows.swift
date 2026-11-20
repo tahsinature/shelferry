@@ -55,8 +55,11 @@ final class ShelfWindows {
     func hideAll() {
         let visible = controllers.values.filter(\.isVisible)
         let frame = visible.first?.frame
-        library.shelves.forEach { hide($0, showFeedback: false) }
-        if let frame { ShelfActionHUD.show(.hidden, count: visible.count, where: frame) }
+        let actions = library.shelves.compactMap { hide($0, showFeedback: false) }
+        if let frame {
+            ShelfActionHUD.show(hiddenCount: actions.filter { $0 == .hidden }.count,
+                                deletedCount: actions.filter { $0 == .deleted }.count, where: frame)
+        }
     }
 
     /// Makes an empty shelf and shows it, by default with keyboard focus, ready for a drop or ⌘V.
@@ -76,11 +79,17 @@ final class ShelfWindows {
         controller(for: shelf).show(besides: neighbour, focus: focus)
     }
 
-    func hide(_ shelf: Shelf, showFeedback: Bool = true) {
-        guard let controller = controllers[shelf.id], controller.isVisible else { return }
+    @discardableResult
+    func hide(_ shelf: Shelf, showFeedback: Bool = true) -> ShelfActionHUD.Action? {
+        guard let controller = controllers[shelf.id], controller.isVisible else { return nil }
+        if shelf.shouldDeleteWhenHidden {
+            close(shelf, showFeedback: showFeedback)
+            return .deleted
+        }
         let frame = controller.frame
         controller.hide()
         if showFeedback, let frame { ShelfActionHUD.show(.hidden, where: frame) }
+        return .hidden
     }
 
     /// Removes the panel and shelf immediately, with feedback by default.

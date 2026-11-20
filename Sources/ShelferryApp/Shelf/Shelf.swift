@@ -81,6 +81,11 @@ final class Shelf: Identifiable {
     }
 
     var isEmpty: Bool { items.isEmpty }
+    /// Empty scratch shelves can be discarded; source settings, history and active work stay available.
+    var shouldDeleteWhenHidden: Bool {
+        isEmpty && !connectionSettings.isConnected && connection.versions.isEmpty &&
+        connection.error == nil && !connection.isRefreshing && imageConversion == nil && !isShowingConversion
+    }
     var selectedItems: [ShelfItem] { items.filter { selection.contains($0.id) } }
     var totalBytes: Int64 { items.compactMap(\.byteSize).reduce(0, +) }
     /// Shelferry's copies are deleted along with the shelf, so removing them is worth a question.
