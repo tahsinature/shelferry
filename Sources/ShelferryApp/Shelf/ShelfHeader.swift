@@ -19,6 +19,10 @@ struct ShelfHeader: View {
             HStack(spacing: 0) {
                 ShelfTitle(shelf: shelf, isEditing: $isRenaming)
                 Spacer(minLength: 4)
+                if !shelf.isEmpty {
+                    ShelfSizeLabel(shelf: shelf)
+                        .padding(.trailing, 6)
+                }
             }
             .padding(.leading, 12)
             .frame(maxHeight: .infinity)

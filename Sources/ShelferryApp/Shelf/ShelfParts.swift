@@ -96,7 +96,11 @@ private struct ShelfRow: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer(minLength: 4)
-            if isCopying {
+            if shelf.receivingIDs.contains(item.id) {
+                Text("Receiving…")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if isCopying {
                 ProgressView()
                     .progressViewStyle(.linear)
                     .controlSize(.small)
@@ -120,7 +124,7 @@ private struct ShelfRow: View {
                 items: { shelf.itemsToDrag(startingAt: item) },
                 onClick: { event in
                     if event.clickCount == 2 {
-                        NSWorkspace.shared.open(item.url)
+                        if !isCopying { NSWorkspace.shared.open(item.url) }
                     } else {
                         shelf.click(item, modifiers: event.modifierFlags)
                     }

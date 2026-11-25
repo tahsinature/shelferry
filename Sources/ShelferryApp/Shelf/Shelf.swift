@@ -44,8 +44,9 @@ final class Shelf: Identifiable {
     var armed: ShelfAction? { store.armed }
     /// Something is being dragged over the shelf.
     var dropTarget: ShelfDropTarget?
-    /// Copies still being made. They show as "Copying…" and can't be dragged out yet.
+    /// Files still being received or copied; unavailable for preview, copying, or dragging out.
     private(set) var copyingIDs: Set<ShelfItem.ID> = []
+    private(set) var receivingIDs: Set<ShelfItem.ID> = []
     @ObservationIgnored var removeAfterDragOut = false
     /// Includes pending copies at their source paths, so concurrent drops reserve their space.
     var manualStorageURLs: [URL] {
@@ -88,7 +89,7 @@ final class Shelf: Identifiable {
         connection.error == nil && !connection.isRefreshing && imageConversion == nil && !isShowingConversion
     }
     var selectedItems: [ShelfItem] { items.filter { selection.contains($0.id) } }
-    var totalBytes: Int64 { items.compactMap(\.byteSize).reduce(0, +) }
+    var totalBytes: Int64 { items.filter { !receivingIDs.contains($0.id) }.compactMap(\.byteSize).reduce(0, +) }
     /// Shelferry's copies are deleted along with the shelf, so removing them is worth a question.
     var hasCopies: Bool { items.contains(where: \.isCopy) }
 
@@ -179,7 +180,7 @@ final class Shelf: Identifiable {
     func add(fileURLs: [URL], mode: ShelfAddMode) {
         guard acceptsManualItems, !connection.isRefreshing else { return }
         switch mode {
-        case .original: add(fileURLs.map(ShelfItem.init(fileURL:)))
+        case .original: fileURLs.forEach(addOriginal)
         case .copy: fileURLs.forEach(addCopy)
         }
     }
@@ -219,6 +220,23 @@ final class Shelf: Identifiable {
         return !savedItems.isEmpty
     }
 
+    private func addOriginal(_ url: URL) {
+        let item = ShelfItem(fileURL: url)
+        guard !items.contains(where: { $0.dedupeKey == item.dedupeKey }) else { return }
+        let isReceiving = !ShelfIncomingFile.isReadable(url)
+        if isReceiving {
+            receivingIDs.insert(item.id)
+            copyingIDs.insert(item.id)
+        }
+        add([item])
+        if isReceiving {
+            Task {
+                let ready = await ShelfIncomingFile.waitUntilReadable(url)
+                finishReceiving(item, ready: ready)
+            }
+        }
+    }
+
     /// Shows the copy right away as "Copying…", and fills it in once the copy is done.
     private func addCopy(of original: URL) {
         let copyURL = ShelfStorage.newFolder().appending(path: original.lastPathComponent)
@@ -227,7 +245,14 @@ final class Shelf: Identifiable {
         items.append(item)
         lastUsed = Date()
         copyingIDs.insert(item.id)
+        if !ShelfIncomingFile.isReadable(original) { receivingIDs.insert(item.id) }
         Task {
+            let ready = await ShelfIncomingFile.waitUntilReadable(original)
+            receivingIDs.remove(item.id)
+            guard ready, items.contains(where: { $0.id == item.id }) else {
+                finishReceiving(item, ready: false)
+                return
+            }
             do { try await connection.checkManualStorage(manualStorageURLs) }
             catch {
                 copyingIDs.remove(item.id)
@@ -239,6 +264,9 @@ final class Shelf: Identifiable {
             copyingIDs.remove(item.id)
             let stillOnShelf = items.contains { $0.id == item.id }
             if copied && stillOnShelf {
+                if let index = items.firstIndex(where: { $0.id == item.id }) {
+                    items[index].conversionRevision = UUID()
+                }
                 save()
             } else if !copied && stillOnShelf {
                 NSSound.beep()
@@ -246,6 +274,19 @@ final class Shelf: Identifiable {
             } else {
                 ShelfStorage.deleteFolder(of: copyURL)
             }
+        }
+    }
+
+    private func finishReceiving(_ item: ShelfItem, ready: Bool) {
+        receivingIDs.remove(item.id)
+        copyingIDs.remove(item.id)
+        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        if ready {
+            items[index].conversionRevision = UUID()
+            save()
+        } else {
+            NSSound.beep()
+            remove([item.id])
         }
     }
 
