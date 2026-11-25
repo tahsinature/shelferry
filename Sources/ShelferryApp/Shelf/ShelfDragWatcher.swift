@@ -8,6 +8,7 @@ import AppKit
 final class ShelfDragWatcher {
     var onShiftDrag: () -> Void = {}
     var onDragEnded: () -> Void = {}
+    var onShiftReleased: () -> Void = {}
 
     private var monitor: Any?
     private var localMonitor: Any?
@@ -25,8 +26,12 @@ final class ShelfDragWatcher {
             MainActor.assumeIsolated { self?.handle(event) }
         }
         // Global monitors don't see Shelferry's own clicks, so watch those here.
-        localMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
-            self?.dragStartedInShelferry = true
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp, .flagsChanged]) { [weak self] event in
+            if event.type == .leftMouseDown {
+                self?.dragStartedInShelferry = true
+            } else {
+                self?.handle(event)
+            }
             return event
         }
     }
@@ -41,6 +46,11 @@ final class ShelfDragWatcher {
     }
 
     private func handle(_ event: NSEvent) {
+        if event.type == .flagsChanged, !event.modifierFlags.contains(.shift), didFire {
+            didFire = false
+            onShiftReleased()
+            return
+        }
         switch event.type {
         case .leftMouseDown:
             dragPasteboardCount = NSPasteboard(name: .drag).changeCount

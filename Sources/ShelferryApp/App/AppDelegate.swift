@@ -51,6 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         dragWatcher.onShiftDrag = { [weak self] in self?.windows.showForDrag() }
         dragWatcher.onDragEnded = { [weak self] in self?.windows.dragEnded() }
+        dragWatcher.onShiftReleased = { [weak self] in self?.windows.shiftReleased() }
         updater.hasPendingWork = { [weak self] in
             guard let self else { return false }
             return activeRequests > 0 || library.shelves.contains {

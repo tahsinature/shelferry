@@ -157,6 +157,15 @@ final class ShelfWindows {
         controller(for: shelf).show(nearCursor: true)
     }
 
+    /// Releasing Shift dismisses only the empty shelf created for this drag.
+    func shiftReleased() {
+        guard let id = dragShelfID else { return }
+        dragShelfID = nil
+        if let shelf = library.shelves.first(where: { $0.id == id }), shelf.isEmpty {
+            close(shelf, showFeedback: false)
+        }
+    }
+
     /// The drop arrives just after the mouse goes up, so wait a moment before deciding.
     func dragEnded() {
         guard let id = dragShelfID else { return }
