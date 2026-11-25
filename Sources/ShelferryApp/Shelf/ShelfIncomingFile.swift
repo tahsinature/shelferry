@@ -11,8 +11,10 @@ enum ShelfIncomingFile {
               let supportedTypes = CGImageSourceCopyTypeIdentifiers() as? [String],
               supportedTypes.contains(type.identifier)
         else { return true }
+        guard let data = try? Data(contentsOf: url) else { return false }
+        if type.conforms(to: .jpeg), !JPEGCompletion.hasEndMarker(data) { return false }
         let options = [kCGImageSourceShouldCacheImmediately: true] as CFDictionary
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
               CGImageSourceGetCount(source) > 0,
               CGImageSourceCreateImageAtIndex(source, 0, options) != nil,
               CGImageSourceGetStatus(source) == .statusComplete,

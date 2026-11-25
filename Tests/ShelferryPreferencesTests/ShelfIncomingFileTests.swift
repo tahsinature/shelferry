@@ -5,10 +5,16 @@ import Testing
 @MainActor
 struct ShelfIncomingFileTests {
     private func imageData() throws -> Data {
-        let bitmap = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 10, pixelsHigh: 10,
+        let bitmap = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 800, pixelsHigh: 600,
                                                   bitsPerSample: 8, samplesPerPixel: 3, hasAlpha: false,
                                                   isPlanar: false, colorSpaceName: .deviceRGB,
                                                   bytesPerRow: 0, bitsPerPixel: 0))
+        let pixels = try #require(bitmap.bitmapData)
+        var noise: UInt32 = 42
+        for index in 0..<(bitmap.bytesPerRow * bitmap.pixelsHigh) {
+            noise = noise &* 1664525 &+ 1013904223
+            pixels[index] = UInt8(truncatingIfNeeded: noise >> 24)
+        }
         return try #require(bitmap.representation(using: .jpeg, properties: [:]))
     }
 
@@ -28,8 +34,12 @@ struct ShelfIncomingFileTests {
         try data.prefix(20).write(to: url)
         try await Task.sleep(for: .milliseconds(150))
         #expect(shelf.receivingIDs.count == 1)
-        try data.prefix(data.count / 2).write(to: url)
-        #expect(!ShelfIncomingFile.isReadable(url))
+        for fraction in [0.15, 0.5, 0.9] {
+            try data.prefix(Int(Double(data.count) * fraction)).write(to: url)
+            #expect(!ShelfIncomingFile.isReadable(url))
+            try await Task.sleep(for: .milliseconds(250))
+            #expect(shelf.receivingIDs.count == 1)
+        }
         try data.write(to: url, options: .atomic)
         let deadline = ContinuousClock.now.advanced(by: .seconds(3))
         while !shelf.copyingIDs.isEmpty, ContinuousClock.now < deadline {
