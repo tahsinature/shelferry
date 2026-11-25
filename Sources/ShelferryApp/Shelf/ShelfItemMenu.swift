@@ -26,7 +26,9 @@ enum ShelfItemMenu {
         }
         menu.addItem(.separator())
 
-        menu.addItem(action("Copy", enabled: !urls.isEmpty) { copy(urls as [NSURL]) })
+        menu.addItem(action("Copy", enabled: !urls.isEmpty) {
+            shelf.clipboard.copy(items, excluding: shelf.copyingIDs)
+        })
         menu.addItem(action(urls.count > 1 ? "Copy Paths" : "Copy Path", enabled: !urls.isEmpty) {
             copy(urls.map(\.path).joined(separator: "\n") as NSString)
         })
@@ -88,11 +90,6 @@ enum ShelfItemMenu {
     private static func copy(_ object: NSPasteboardWriting) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.writeObjects([object])
-    }
-
-    private static func copy(_ objects: [NSURL]) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.writeObjects(objects)
     }
 
     private static func action(_ title: String, enabled: Bool = true, run: @escaping () -> Void) -> NSMenuItem {

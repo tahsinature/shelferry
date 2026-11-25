@@ -103,6 +103,12 @@ final class ShelfPanelController {
         }
         // While the name is being edited, keys belong to the text field.
         if panel.firstResponder is NSText { return false }
+        if shortcutModifiers == .command, key?.lowercased() == "c" {
+            if !event.isARepeat {
+                shelf.clipboard.copy(shelf.selectedItems, excluding: shelf.copyingIDs)
+            }
+            return true
+        }
         let commandKey = event.charactersIgnoringModifiers?.lowercased()
         if event.modifierFlags.contains(.command) {
             switch commandKey {

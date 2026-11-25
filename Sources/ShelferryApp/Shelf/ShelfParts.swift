@@ -10,9 +10,7 @@ struct ShelfFooter: View {
     var body: some View {
         HStack(spacing: 0) {
             HStack(spacing: 0) {
-                Text(summary)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                ShelfCopyStatus(summary: summary, copiedCount: shelf.clipboard.copiedCount)
                 Spacer(minLength: 4)
             }
             .padding(.leading, 12)

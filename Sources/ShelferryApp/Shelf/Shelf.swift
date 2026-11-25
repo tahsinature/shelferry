@@ -16,6 +16,7 @@ final class Shelf: Identifiable {
         didSet { store.send(.itemsChanged(items.map(\.id))) }
     }
     let store: StoreOf<ShelfFeature>
+    let clipboard = ShelfClipboard()
     var connectionSettings = ShelfConnectionSettings()
     @ObservationIgnored lazy var connection = ShelfConnection(shelf: self)
     @ObservationIgnored lazy var settingsWindow = ShelfSettingsWindow(shelf: self)
